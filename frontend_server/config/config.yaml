@@ -1,0 +1,5 @@
+environment_mode: "dev" # Среда работы - на локальной машине, доступны ("local", "prodaction")
+http_server:
+  address: "localhost:8081" # Адрес сервера
+  request_timeout: 4s # Таймаут запроса
+  connection_timeout: 60s # Таймаут соединения
