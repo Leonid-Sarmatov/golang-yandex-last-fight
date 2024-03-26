@@ -40,7 +40,7 @@ func main() {
 	router.Use(cors_headers.AddCorsHeaders())
 
 	// Подключаем обработчик сайта для входа в аккаунт и регистрации
-	router.Post("/login", login.NewLoginSiteHandler(logger, cfg))
+	router.Get("/login", login.NewLoginSiteHandler(logger, cfg))
 
 	// Подключаем обработчик сайта для входа в аккаунт и регистрации
 	router.Post("/account", account.NewAccountSiteHandler(logger, cfg))
