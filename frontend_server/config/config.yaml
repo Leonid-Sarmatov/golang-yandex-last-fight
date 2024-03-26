@@ -1,4 +1,6 @@
 environment_mode: "dev" # Среда работы - на локальной машине, доступны ("local", "prodaction")
+login_page: "login.html"
+main_page: "main.html"
 http_server:
   address: "localhost:8081" # Адрес сервера
   request_timeout: 4s # Таймаут запроса
