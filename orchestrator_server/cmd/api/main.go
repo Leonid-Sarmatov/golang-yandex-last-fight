@@ -9,9 +9,11 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	config "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/config"
-	//login "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/login"
+	login "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/login"
 	registration "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/registration"
 	cors_headers "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/middlewares/cors_headers"
+	jwt_manager "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/jwt"
+	postgres "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/postgres"
 )
 
 func main() {
@@ -24,6 +26,15 @@ func main() {
 	// Инициализируем логгер
 	logger := setupLogger(cfg.EnvMode)
 	logger.Debug("Successful read configurations.", slog.Any("cfg", cfg))
+
+	// Создаем структуру для работы с JWT токенами
+	jwtManager := jwt_manager.NewJWTManager()
+
+	// Создаем структуру для работы с базой данных
+	postgres, err := postgres.NewPostgres(logger, postgres.ConnectStringFromConfig(cfg))
+	if err != nil {
+		panic(err)
+	}
 
 	// Инициализируем роутер
 	router := chi.NewRouter()
@@ -40,10 +51,10 @@ func main() {
 	router.Use(cors_headers.AddCorsHeaders())
 
 	// Эндпоинт для входа в аккаунт
-	//router.Post("/login", login.NewLoginHandler(logger))
+	router.Post("/login", login.NewLoginHandler(logger, jwtManager, postgres))
 
 	// Эндпоинт для входа в аккаунт
-	router.Post("/registration", registration.NewRegistrationHandler(logger))
+	router.Post("/registration", registration.NewRegistrationHandler(logger, postgres))
 
 	// Эндпоинт принимающий выражение
 	// Эндпоинт возвращающий список со всеми задачами

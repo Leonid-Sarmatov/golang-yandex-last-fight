@@ -7,12 +7,12 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type JWT struct {
+type JWTManager struct {
 	SecretKey []byte
 }
 
-func NewJWTSystem() *JWT {
-	j := &JWT{
+func NewJWTManager() *JWTManager {
+	j := &JWTManager{
 		SecretKey: []byte("your-secret-key"),
 	}
 	return j
@@ -21,7 +21,7 @@ func NewJWTSystem() *JWT {
 /*
 CreateJWTTokenString метод создающий токен для авторизации
 */
-func (j *JWT) CreateJWTTokenString(userName string) (string, error) {
+func (j *JWTManager) CreateJWTToken(userName string) (string, error) {
 	now := time.Now()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"name": userName,
@@ -41,7 +41,7 @@ func (j *JWT) CreateJWTTokenString(userName string) (string, error) {
 /*
 ValidateJWTToken метод проверяющий валидность токена
 */
-func (j *JWT) ValidateJWTToken(tokenString string) (string, error) {
+func (j *JWTManager) ValidateJWTToken(tokenString string) (string, error) {
 	tokenFromString, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
