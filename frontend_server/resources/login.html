@@ -96,5 +96,53 @@
     <p class="response-message">Response will appear here.</p>
   </div>
 </div>
-</body>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const responseWindow = document.getElementById('responseWindow');
+  
+    // Function to handle form submission
+    function handleSubmit(event, url) {
+      event.preventDefault();
+      
+      const formData = new FormData(event.target);
+      const jsonData = {};
+  
+      formData.forEach((value, key) => {
+        jsonData[key] = value;
+      });
+      console.log(jsonData);
+  
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", url, true);
+      xhr.setRequestHeader("Content-Type", "application/json");
+  
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            const response = JSON.parse(xhr.responseText);
+            responseWindow.innerHTML = `<p class="response-message">${response.message}</p>`;
+          } else {
+            responseWindow.innerHTML = `<p class="response-message">Error: ${xhr.status} ${xhr.statusText}</p>`;
+          }
+        }
+      };
+  
+      xhr.send(JSON.stringify(jsonData));
+    }
+  
+    // Event listeners for form submission
+    loginForm.addEventListener('submit', function(event) {
+      handleSubmit(event, 'http://localhost:8082/login');
+    });
+  
+    registerForm.addEventListener('submit', function(event) {
+      handleSubmit(event, 'http://localhost:8082/registration');
+    });
+  });
+  </script>
+  
+  </body>
 </html>

@@ -2,16 +2,16 @@ package main
 
 import (
 	"log/slog"
-	"os"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	config "github.com/Leonid-Sarmatov/golang-yandex-last-fight/frontend_server/internal/config"
-	login "github.com/Leonid-Sarmatov/golang-yandex-last-fight/frontend_server/internal/handlers/login"
-	account "github.com/Leonid-Sarmatov/golang-yandex-last-fight/frontend_server/internal/handlers/account"
-	cors_headers "github.com/Leonid-Sarmatov/golang-yandex-last-fight/frontend_server/internal/middlewares/cors_headers"
+	config "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/config"
+	//login "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/login"
+	registration "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/registration"
+	cors_headers "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/middlewares/cors_headers"
 )
 
 func main() {
@@ -39,11 +39,16 @@ func main() {
 	// что бы исключить возможные неполадки со стороны браузера
 	router.Use(cors_headers.AddCorsHeaders())
 
-	// Подключаем обработчик сайта для входа в аккаунт и регистрации
-	router.Get("/login", login.NewLoginSiteHandler(logger, cfg))
+	// Эндпоинт для входа в аккаунт
+	//router.Post("/login", login.NewLoginHandler(logger))
 
-	// Подключаем обработчик сайта для входа в аккаунт и регистрации
-	router.Get("/account", account.NewAccountSiteHandler(logger, cfg))
+	// Эндпоинт для входа в аккаунт
+	router.Post("/registration", registration.NewRegistrationHandler(logger))
+
+	// Эндпоинт принимающий выражение
+	// Эндпоинт возвращающий список со всеми задачами
+	// Эндпоинт принимающий список со временем выполнения для каждой операции
+	// Эндпоинт возвращающий список с вычислителями и информацией о них
 
 	// Создаем сервер
 	server := &http.Server{

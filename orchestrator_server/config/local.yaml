@@ -1,0 +1,11 @@
+environment_mode: "dev" # Среда работы - на локальной машине, доступны ("local", "prodaction")
+postgres:
+  host: "last_fight_postgres"
+  port: "5432"
+  user: "leonid"
+  password: "password"
+  dbname: "main_database"
+http_server:
+  address: "localhost:8082" # Адрес сервера
+  request_timeout: 4s # Таймаут запроса
+  connection_timeout: 60s # Таймаут соединения
