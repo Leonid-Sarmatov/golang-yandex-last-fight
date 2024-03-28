@@ -3,10 +3,8 @@ package login
 import (
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/render"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 /*
@@ -26,9 +24,8 @@ type Response struct {
 	JWTToken string `json:"message,omitempty"`
 }
 
-type JWTmanager interface {
+type JWTCreater interface {
 	CreateJWTToken(userName string) (string, error)
-	ValidateJWTToken(tokenString string) (string, error)
 }
 
 type CheckAccount interface {
@@ -41,7 +38,7 @@ NewLoginHandler выполняет вход в аккаунт
 2. Если пользователь зарегистрирован, то создает и возвращаем ему токен
 3. Сохраняем токен для последующих сравнений
 */
-func NewLoginHandler(logger *slog.Logger, j JWTmanager, checkAccount CheckAccount) http.HandlerFunc {
+func NewLoginHandler(logger *slog.Logger, j JWTCreater, checkAccount CheckAccount) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Переменная для запроса
 		var request Request
@@ -53,16 +50,30 @@ func NewLoginHandler(logger *slog.Logger, j JWTmanager, checkAccount CheckAccoun
 			return
 		}
 
-		const hmacSampleSecret = "super_secret_signature"
-		now := time.Now()
+		// Проверяем есть пользователь в системе
+		ok, err := checkAccount.СheckAccountExist(request.UserName, request.Password)
+		if err != nil || !ok {
+			// Пишем в лог ошибку поиска в системе
+			logger.Error("Searching user was failed", err.Error())
+			// Создаем ответ с ошибкой
+			render.JSON(w, r, Response{Status: "Error", Error: "Searching user was failed"})
+			return
+		}
 
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"name": "user_name",
-			"nbf":  now.Add(time.Minute).Unix(),
-			"exp":  now.Add(5 * time.Minute).Unix(),
-			"iat":  now.Unix(),
+		// Создаем токен
+		token, err := j.CreateJWTToken(request.UserName)
+		if err != nil {
+			// Пишем в лог ошибку поиска в системе
+			logger.Error("Create token was failed", err.Error())
+			// Создаем ответ с ошибкой
+			render.JSON(w, r, Response{Status: "Error", Error: "Create token was failed"})
+			return
+		}
+
+		// Выдаем токен клиенту
+		render.JSON(w, r, Response{
+			Status: "OK",
+			JWTToken: token,
 		})
-
-		logger.Info(token.Raw)
 	}
 }

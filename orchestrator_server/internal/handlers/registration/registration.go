@@ -35,9 +35,8 @@ NewRegistrationHandler хендлер для создания нового по�
 2. Если такого пользователя еще нет то создаем нового пользователя
 accountCreater AccountCreater
 */
-func NewRegistrationHandler(logger *slog.Logger) http.HandlerFunc {
+func NewRegistrationHandler(logger *slog.Logger, accountCreater AccountCreater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		// Переменная для запроса
 		var request Request
 		if err := render.DecodeJSON(r.Body, &request); err != nil {
@@ -45,6 +44,34 @@ func NewRegistrationHandler(logger *slog.Logger) http.HandlerFunc {
 			logger.Error("Decoding request body was failed", err.Error())
 			// Создаем ответ с ошибкой
 			render.JSON(w, r, Response{Status: "Error", Error: "Decoding request body was failed"})
+			return
+		}
+
+		// Проверяем есть ли пользователь в системе
+		ok, err := accountCreater.СheckAccountExist(request.UserName, request.Password)
+		if err != nil {
+			// Пишем в лог ошибку поиска
+			logger.Error("Searching user was failed", err.Error())
+			// Создаем ответ с ошибкой
+			render.JSON(w, r, Response{Status: "Error", Error: "Decoding request body was failed"})
+			return
+		}
+
+		if !ok {
+			// Если пользователя нет в системе создаем аккаунт
+			err = accountCreater.CreateNewAccount(request.UserName, request.Password)
+			if err != nil {
+				// Пишем в лог ошибку создания аккаунта
+				logger.Error("Searching user was failed", err.Error())
+				// Создаем ответ с ошибкой
+				render.JSON(w, r, Response{Status: "Error", Error: "Decoding request body was failed"})
+				return
+			}
+		} else {
+			// Пишем в лог что аккаунт с таким именем уже существует
+			logger.Error("The account with the same name already exists", err.Error())
+			// Создаем ответ с ошибкой
+			render.JSON(w, r, Response{Status: "Error", Error: "The account with the same name already exists"})
 			return
 		}
 
