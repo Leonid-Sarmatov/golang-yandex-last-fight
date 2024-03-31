@@ -20,11 +20,12 @@ Request структура ответа на запрос
 */
 type Response struct {
 	Status  string `json:"status"`
+	Message string `json:"message,omitempty"`
 	Error   string `json:"error,omitempty"`
 }
 
 type AccountCreater interface {
-	СheckAccountExist(userName, password string) (bool, error)
+	СheckAccountExist(userName string) (bool, error)
 	CreateNewAccount(userName, password string) error
 }
 
@@ -41,17 +42,17 @@ func NewRegistrationHandler(logger *slog.Logger, accountCreater AccountCreater) 
 		var request Request
 		if err := render.DecodeJSON(r.Body, &request); err != nil {
 			// Пишем в лог ошибку декодирования
-			logger.Error("Decoding request body was failed", err.Error())
+			logger.Info("Decoding request body was failed", err.Error())
 			// Создаем ответ с ошибкой
 			render.JSON(w, r, Response{Status: "Error", Error: "Decoding request body was failed"})
 			return
 		}
 
 		// Проверяем есть ли пользователь в системе
-		ok, err := accountCreater.СheckAccountExist(request.UserName, request.Password)
+		ok, err := accountCreater.СheckAccountExist(request.UserName)
 		if err != nil {
 			// Пишем в лог ошибку поиска
-			logger.Error("Searching user was failed", err.Error())
+			logger.Info("Searching user was failed", err.Error())
 			// Создаем ответ с ошибкой
 			render.JSON(w, r, Response{Status: "Error", Error: "Decoding request body was failed"})
 			return
@@ -62,7 +63,7 @@ func NewRegistrationHandler(logger *slog.Logger, accountCreater AccountCreater) 
 			err = accountCreater.CreateNewAccount(request.UserName, request.Password)
 			if err != nil {
 				// Пишем в лог ошибку создания аккаунта
-				logger.Error("Searching user was failed", err.Error())
+				logger.Info("Searching user was failed", err.Error())
 				// Создаем ответ с ошибкой
 				render.JSON(w, r, Response{Status: "Error", Error: "Decoding request body was failed"})
 				return
@@ -76,7 +77,8 @@ func NewRegistrationHandler(logger *slog.Logger, accountCreater AccountCreater) 
 		// Отправляем ответ клиенту
 		render.JSON(w, r, Response{
 			Status: "OK",
-			//Message: "Hello, "+request.UserName,
+			Message: "reg",
 		})
+		//logger.Info("OK")
 	}
 }

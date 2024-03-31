@@ -123,13 +123,13 @@
         if (xhr.readyState === 4) {
           if (xhr.status === 200) {
             const response = JSON.parse(xhr.responseText);
-            console.log(response);
-            if (response["token"] === "") {
-
-            } else {
+            console.log(response)
+            if (response["token"] != "" && response["message"] == "login") {
               sessionStorage.setItem('jwtToken', response["token"]);
               console.log(sessionStorage.getItem('jwtToken'))
               window.location.href = 'http://localhost:8081/account';
+            } else {
+              responseWindow.innerHTML = `<p class="response-message">Error: ${response.error}</p>`;
             }
             responseWindow.innerHTML = `<p class="response-message">${response.message}</p>`;
           } else {

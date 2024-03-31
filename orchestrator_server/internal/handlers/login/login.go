@@ -21,6 +21,7 @@ Request структура ответа на запрос
 type Response struct {
 	Status   string `json:"status"`
 	Error    string `json:"error,omitempty"`
+	Message string `json:"message,omitempty"`
 	JWTToken string `json:"token,omitempty"`
 }
 
@@ -29,7 +30,7 @@ type JWTCreater interface {
 }
 
 type CheckAccount interface {
-	СheckAccountExist(userName, password string) (bool, error)
+	СheckAccountExist(userName string) (bool, error)
 }
 
 /*
@@ -51,10 +52,10 @@ func NewLoginHandler(logger *slog.Logger, j JWTCreater, checkAccount CheckAccoun
 		}
 
 		// Проверяем есть пользователь в системе
-		ok, err := checkAccount.СheckAccountExist(request.UserName, request.Password)
+		ok, err := checkAccount.СheckAccountExist(request.UserName)
 		if err != nil || !ok {
 			// Пишем в лог ошибку поиска в системе
-			logger.Error("Searching user was failed", err.Error())
+			logger.Error("Searching user was failed")
 			// Создаем ответ с ошибкой
 			render.JSON(w, r, Response{Status: "Error", Error: "Searching user was failed"})
 			return
@@ -74,6 +75,7 @@ func NewLoginHandler(logger *slog.Logger, j JWTCreater, checkAccount CheckAccoun
 		render.JSON(w, r, Response{
 			Status: "OK",
 			JWTToken: token,
+			Message: "login",
 		})
 	}
 }
