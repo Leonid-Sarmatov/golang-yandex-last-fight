@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"io"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -11,14 +12,19 @@ import (
 	config "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/config"
 	login "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/login"
 	registration "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/registration"
-	cors_headers "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/middlewares/cors_headers"
 	jwt_manager "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/jwt"
+	cors_headers "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/middlewares/cors_headers"
 	postgres "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/postgres"
+	//validate_token "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/middlewares/validate_token"
+	//sendTask "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/send_task"
+	//getListOfTask "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/get_list_of_task"
+	//sendTimeOfOperations "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/send_time_of_operations"
+	//getListOfSolvers "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/get_list_of_solvers"
 )
 
 func main() {
-	// Задаем путь до конфигов
-	os.Setenv("CONFIG_PATH", "./config/local.yaml")
+	// Задаем путь до конфигов   /golang_yandex_last_figth/orchestrator_server
+	os.Setenv("CONFIG_PATH", "./orchestrator_server/config/local.yaml")
 
 	// Инициализируем конфиги
 	cfg := config.MustLoad()
@@ -35,6 +41,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	//fuck(logger)
 
 	// Инициализируем роутер
 	router := chi.NewRouter()
@@ -56,10 +64,22 @@ func main() {
 	// Эндпоинт для входа в аккаунт
 	router.Post("/registration", registration.NewRegistrationHandler(logger, postgres))
 
-	// Эндпоинт принимающий выражение
-	// Эндпоинт возвращающий список со всеми задачами
-	// Эндпоинт принимающий список со временем выполнения для каждой операции
-	// Эндпоинт возвращающий список с вычислителями и информацией о них
+	/*router.Route("/api", func(r chi.Router) {
+		// Подключаем middleware для проверки токена запроса
+		r.Use(validate_token.ValidateJWTToken(logger, jwtManager))
+
+		// Эндпоинт принимающий выражение
+		//r.Post("/sendTask")
+
+		// Эндпоинт возвращающий список со всеми задачами
+		//r.Get("/getListOfTask")
+
+		// Эндпоинт принимающий список со временем выполнения для каждой операции
+		//r.Post("/sendTimeOfOperations")
+
+		// Эндпоинт возвращающий список с вычислителями и информацией о них
+		//r.Get("/getListOfSolvers")
+	})*/
 
 	// Создаем сервер
 	server := &http.Server{
@@ -98,4 +118,24 @@ func setupLogger(envMode string) *slog.Logger {
 	}
 
 	return logger
+}
+
+func fuck(logger *slog.Logger) {
+	resp, err := http.Get("http://frontend_server:8081/registration")
+	if err != nil || resp.StatusCode != http.StatusOK {
+		// Если не удалочь отправить успешный запрос или отказано
+		// в получении задачи то ждем две секунды, 
+		// и пытаемся отправить запрос повторно
+		logger.Info("[ERROR]: Can not connect to orkestrator", err.Error())
+
+	} else {
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			logger.Info("[error]:", err.Error())
+			return
+		}
+
+		logger.Info("html:", string(body))
+	}
 }

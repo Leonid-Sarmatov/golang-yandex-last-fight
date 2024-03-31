@@ -16,7 +16,7 @@ import (
 
 func main() {
 	// Задаем путь до конфигов
-	os.Setenv("CONFIG_PATH", "./config/local.yaml")
+	os.Setenv("CONFIG_PATH", "./frontend_server/config/local.yaml")
 
 	// Инициализируем конфиги
 	cfg := config.MustLoad()
@@ -40,7 +40,7 @@ func main() {
 	router.Use(cors_headers.AddCorsHeaders())
 
 	// Подключаем обработчик сайта для входа в аккаунт и регистрации
-	router.Get("/login", login.NewLoginSiteHandler(logger, cfg))
+	router.Get("/registration", login.NewLoginSiteHandler(logger, cfg))
 
 	// Подключаем обработчик сайта для входа в аккаунт и регистрации
 	router.Get("/account", account.NewAccountSiteHandler(logger, cfg))
@@ -53,6 +53,8 @@ func main() {
 		WriteTimeout: cfg.HTTPServerConfig.RequestTimeout,
 		IdleTimeout:  cfg.HTTPServerConfig.ConnectionTimeout,
 	}
+
+	logger.Info("Server was started")
 
 	// Запускаем сервер
 	if err := server.ListenAndServe(); err != nil {

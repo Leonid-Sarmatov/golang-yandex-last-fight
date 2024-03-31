@@ -21,7 +21,7 @@ Request структура ответа на запрос
 type Response struct {
 	Status   string `json:"status"`
 	Error    string `json:"error,omitempty"`
-	JWTToken string `json:"message,omitempty"`
+	JWTToken string `json:"token,omitempty"`
 }
 
 type JWTCreater interface {

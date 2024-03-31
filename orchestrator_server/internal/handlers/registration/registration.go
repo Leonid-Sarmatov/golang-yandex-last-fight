@@ -68,8 +68,6 @@ func NewRegistrationHandler(logger *slog.Logger, accountCreater AccountCreater) 
 				return
 			}
 		} else {
-			// Пишем в лог что аккаунт с таким именем уже существует
-			logger.Error("The account with the same name already exists", err.Error())
 			// Создаем ответ с ошибкой
 			render.JSON(w, r, Response{Status: "Error", Error: "The account with the same name already exists"})
 			return

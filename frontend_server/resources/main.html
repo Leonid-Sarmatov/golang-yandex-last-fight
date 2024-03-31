@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simple Website with Tabs</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 20px auto;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .tab {
+    display: none;
+    padding: 20px;
+  }
+
+  .active-tab {
+    display: block;
+  }
+
+  button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background-color: #0056b3;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+
+  ul {
+    list-style-type: none;
+    padding: 0;
+  }
+
+  li {
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+
+  .response-window {
+    height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Tab navigation buttons -->
+  <div class="tab-navigation">
+    <button onclick="openTab('tab1')">Tab 1</button>
+    <button onclick="openTab('tab2')">Tab 2</button>
+    <button onclick="openTab('tab3')">Tab 3</button>
+    <button onclick="openTab('tab4')">Tab 4</button>
+  </div>
+
+  <div id="tab1" class="tab active-tab">
+    <h2>First Tab</h2>
+    <input type="text" id="inputString" placeholder="Enter a string">
+    <button onclick="sendExpression()">Send to Server</button>
+    <div class="response-window" id="responseWindow"></div>
+  </div>
+
+  <div id="tab2" class="tab">
+    <h2>Second Tab</h2>
+    <ul id="operationList">
+      <!-- Expressions will be added here dynamically -->
+    </ul>
+  </div>
+
+  <div id="tab3" class="tab">
+    <h2>Mathematical Operations</h2>
+    <ul id="operationFormList">
+      <!-- Operation forms will be added here dynamically -->
+      <li>
+        <h3>Addition</h3>
+        <form id="additionForm">
+          <label for="additionTime">Time (seconds):</label>
+          <input type="number" id="additionTime" name="additionTime" min="1" required>
+        </form>
+      </li>
+      <li>
+        <h3>Subtraction</h3>
+        <form id="subtractionForm">
+          <label for="subtractionTime">Time (seconds):</label>
+          <input type="number" id="subtractionTime" name="subtractionTime" min="1" required>
+        </form>
+      </li>
+      <li>
+        <h3>Division</h3>
+        <form id="divisionForm">
+          <label for="divisionTime">Time (seconds):</label>
+          <input type="number" id="divisionTime" name="divisionTime" min="1" required>
+        </form>
+      </li>
+      <li>
+        <h3>Multiplication</h3>
+        <form id="multiplicationForm">
+          <label for="multiplicationTime">Time (seconds):</label>
+          <input type="number" id="multiplicationTime" name="multiplicationTime" min="1" required>
+        </form>
+      </li>
+    </ul>
+    <button onclick="sendOperationsTimes()">Send Data</button>
+  </div>
+
+  <div id="tab4" class="tab">
+    <h2>Fourth Tab</h2>
+    <ul id="solversList">
+      <!-- Servers will be added here dynamically -->
+    </ul>
+  </div>
+
+</div>
+
+<script>
+  // Запуск сайта 
+  function openTab(tabName) {
+    var tabs = document.getElementsByClassName("tab");
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.remove("active-tab");
+    }
+    document.getElementById(tabName).classList.add("active-tab");
+  }
+
+  // Передача на бэкенд выражения для выполнения
+  function sendExpression() {
+    var inputString = document.getElementById("inputString").value;
+    var responseWindow = document.getElementById("responseWindow");
+
+    // Структура запроса
+    var userData = {
+      expression: inputString
+    };
+
+    // Создаем запрос
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "http://localhost:8081/sendExpression", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.send(JSON.stringify(userData));
+
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        // парсим JSON ответа
+        var response = JSON.parse(xhr.responseText);
+        // Печатаем ответ в консоль
+        console.log(response);     
+        // Печатаем в окно
+        responseWindow.innerHTML = 'Response from server:<br>'
+        responseWindow.innerHTML += response["response"] + '<br>'
+        responseWindow.innerHTML += response["timeToSend"]
+      } else {
+        displayError("Status: " + xhr.status + " " + xhr.statusText);
+      }
+    };
+  }
+
+  function displayError(message) {
+    const responseWindow = document.getElementById('responseWindow');
+    responseWindow.innerHTML = message;
+  }
+
+  // Получение от сервера таблицы с задачами
+  function getListOfTask() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "http://localhost:8081/getListOfTask", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        var operations = JSON.parse(xhr.responseText);
+        populateOperationList(operations);
+      }
+    };
+
+    xhr.send();
+  }
+
+  // Заполнение таблицы с задачами
+  function populateOperationList(operations) {
+    const operationList = document.getElementById('operationList');
+    operationList.innerHTML = ''; // Clear existing list items
+    operations.forEach(operation => {
+      const listItem = document.createElement('li');
+      console.log(operation.expression);
+      var status = ""
+      if (operation.status === 1) {
+        status = "Successfully parsed and accepted for processing";
+      }
+      if (operation.status === 2) {
+        status = "In the process of calculation";
+      }
+      if (operation.status === 3) {
+        status = "Successfully calculated";
+      }
+      if (operation.status === 4) {
+        status = "Failed calculation";
+      }
+      listItem.innerHTML = `
+        <strong>Status:</strong> ${status}<br>
+        <strong>Expression:</strong> ${operation.expression}<br>
+        <strong>Result:</strong> ${operation.result}<br>
+        <strong>Creation Date:</strong> ${operation.beginTime}<br>
+        <strong>Completion Date:</strong> ${operation.endTime}<br>
+      `;
+      operationList.appendChild(listItem);
+    });  
+  }
+
+  // Передача на бэкенд времени выполнения операций
+  function sendOperationsTimes() {
+    // Структура запроса
+    var userData = {
+      additionTime: document.getElementById("additionTime").value,
+	    subtractionTime: document.getElementById("subtractionTime").value,
+	    divisionTime: document.getElementById("divisionTime").value,
+	    multiplicationTime: document.getElementById("multiplicationTime").value
+    };
+
+    // Создаем запрос
+    var xhr = new XMLHttpRequest();
+    xhr.open("PUT", "http://localhost:8081/sendTimeOfOperations", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.send(JSON.stringify(userData));
+
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        // Печатаем ответ в консоль
+        console.log(response);     
+      }
+    };
+  }
+
+  // Получение от сервера таблицы с вычислительными сервисами
+  function getListOfSolvers() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "http://localhost:8081/getListOfSolvers", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        var solvers = JSON.parse(xhr.responseText);
+        populateSolversList(solvers);
+      }
+    };
+
+    xhr.send();
+  }
+
+  // Заполнение таблицы вычислителей
+  function populateSolversList(solvers) {
+    const solversList = document.getElementById('solversList');
+    solversList.innerHTML = ''; // Clear existing list items
+    solvers.forEach(solver => {
+      const listItem = document.createElement('li');
+      console.log(solver);
+      listItem.innerHTML = `
+        <strong>Solver Name:</strong> ${solver.solverName}<br>
+        <strong>Solving Now Expression:</strong> ${solver.solvingExpression}<br>
+        <strong>Last Ping:</strong> ${solver.lastPing}<br>
+        <strong>Infomatiom From The Solver:</strong> ${solver.infoString}<br>
+      `;
+      solversList.appendChild(listItem);
+    });  
+  }
+
+  // Запуск потока запросов для обновления таблицы с задачами
+  var requestsInitiated = false;
+  function initiateRequests() {
+    if (!requestsInitiated) {
+      getListOfTask();
+      setInterval(getListOfTask, 1000); 
+      getListOfSolvers();
+      setInterval(getListOfSolvers, 1000); 
+      requestsInitiated = true;
+    }
+  }
+  document.addEventListener('DOMContentLoaded', initiateRequests);
+
+  openTab("tab1");
+</script>
+</body>
+</html>

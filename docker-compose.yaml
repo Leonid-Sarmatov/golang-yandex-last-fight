@@ -1,0 +1,44 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:16.1
+    container_name: last_fight_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: "main_database"
+      POSTGRES_USER: "leonid"
+      POSTGRES_PASSWORD: "password"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - leonid_network
+    
+  orchestrator-server:
+    build:
+      context: .
+      dockerfile: Orchestrator
+    container_name: orchestrator_server
+    depends_on:
+      - postgres
+    ports:
+      - "8082:8082"
+    networks:
+      - leonid_network
+
+  frontend-server:
+    build:
+      context: .
+      dockerfile: Frontend
+    container_name: frontend_server
+    depends_on:
+      - postgres
+    ports:
+      - "8081:8081"
+    networks:
+      - leonid_network
+
+networks:
+  leonid_network:
+    driver: bridge

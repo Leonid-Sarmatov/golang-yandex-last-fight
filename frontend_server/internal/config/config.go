@@ -11,7 +11,7 @@ import (
 type Config struct {
 	EnvMode          string `yaml:"environment_mode" env-default:"local"`
 	LoginPagePath    string `yaml:"login_page" env-default:"./resources/login.html"`
-	MainPagePath     string `yaml:"main_page" env-default:"./resources/login.html"`
+	MainPagePath     string `yaml:"main_page" env-default:"./resources/main.html"`
 	HTTPServerConfig `yaml:"http_server"`
 }
 

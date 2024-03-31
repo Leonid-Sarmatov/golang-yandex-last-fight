@@ -1,0 +1,8 @@
+FROM golang:1.22
+
+WORKDIR /golang_yandex_last_fight
+
+COPY . .
+
+EXPOSE 8082 8082
+CMD ["go", "run", "orchestrator_server/cmd/api/main.go"]
