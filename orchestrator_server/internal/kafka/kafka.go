@@ -28,6 +28,10 @@ type Result struct {
 	Result     string `json:"result"`
 }
 
+type GetterTimeOfOperation interface {
+	GetTimeOfOperation() (*postgres.TimeOfOperation, error)
+}
+
 func NewKafkaManager(logger *slog.Logger, cfg *config.Config) *KafkaManager {
 	var kafkaManager KafkaManager
 
@@ -43,17 +47,13 @@ func NewKafkaManager(logger *slog.Logger, cfg *config.Config) *KafkaManager {
 		logger.Info("Can not create new producer", err.Error())
 	}
 
-	// Создание консумера, принимающего решения
+	// Создание консумера, принимающего решенные задачи
 
 
 	kafkaManager.Produser = producer
 	kafkaManager.TaskTopicName = cfg.KafkaConfig.TopicName
 	logger.Info("Kafka init - OK")
 	return &kafkaManager
-}
-
-type GetterTimeOfOperation interface {
-	GetTimeOfOperation() (postgres.TimeOfOperation, error)
 }
 
 func (k *KafkaManager) SendTaskToSolver(userName, expression string, gto GetterTimeOfOperation) error {
@@ -67,7 +67,7 @@ func (k *KafkaManager) SendTaskToSolver(userName, expression string, gto GetterT
 	jsonMessage, err := json.Marshal(Task{
 		Expression:      expression,
 		UserName:        userName,
-		TimeOfOperation: timeOfOperation,
+		TimeOfOperation: *timeOfOperation,
 	})
 
 	// Создаем сообщение с JSON

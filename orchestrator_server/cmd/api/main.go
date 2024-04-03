@@ -14,11 +14,10 @@ import (
 	get_list_of_task "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/get_list_of_task"
 	login "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/login"
 	registration "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/registration"
-	"github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/send_task"
 	send_task "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/send_task"
 	send_time_of_operation "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/send_time_of_operation"
 	jwt_manager "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/jwt"
-	"github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/kafka"
+	kafka "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/kafka"
 	cors_headers "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/middlewares/cors_headers"
 	validate_token "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/middlewares/validate_token"
 	postgres "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/postgres"
@@ -67,23 +66,23 @@ func main() {
 	router.Post("/login", login.NewLoginHandler(logger, jwtManager, postgres))
 
 	// Эндпоинт для входа в аккаунт
-	router.Post("/registration", registration.NewRegistrationHandler(logger, postges))
+	router.Post("/registration", registration.NewRegistrationHandler(logger, postgres))
 
 	router.Route("/api", func(r chi.Router) {
 		// Подключаем middleware для проверки токена запроса
 		r.Use(validate_token.ValidateJWTToken(logger, jwtManager))
 
 		// Эндпоинт принимающий выражение
-		r.Post("/sendTask", send_task.NewSendTaskHandler(logger, kafkaManager, postgres))
+		r.Post("/sendTask", send_task.NewSendTaskHandler(logger, kafkaManager, postgres, postgres))
 
 		// Эндпоинт возвращающий список со всеми задачами
-		//r.Get("/getListOfTask")
+		r.Get("/getListOfTask", get_list_of_task.NewGetListOfTaskHandler(logger, postgres))
 
 		// Эндпоинт принимающий список со временем выполнения для каждой операции
-		//r.Post("/sendTimeOfOperations")
+		r.Post("/sendTimeOfOperations", send_time_of_operation.NewSendTimeOfOperationsHandler(logger, postgres))
 
 		// Эндпоинт возвращающий список с вычислителями и информацией о них
-		//r.Get("/getListOfSolvers")
+		r.Get("/getListOfSolvers", get_list_of_solvers.NewGetListOfSolversHandler(logger))
 	})
 
 	// Создаем сервер

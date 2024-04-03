@@ -6,11 +6,12 @@ import (
 
 	"github.com/go-chi/render"
 
-	postgres "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/postgres"
+	kafka "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/kafka"
+	//postgres "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/postgres"
 )
 
 /*
-Request структура запроса на регистрацию
+Request структура запроса
 */
 type Request struct {
 	Expression string `json:"expression"`
@@ -25,12 +26,8 @@ type Response struct {
 	Message  string `json:"message,omitempty"`
 }
 
-type GetterTimeOfOperation interface {
-	GetTimeOfOperation() postgres.TimeOfOperation
-}
-
 type SenderTask interface {
-	SendTaskToSolver(userName, expression string, gto GetterTimeOfOperation) error
+	SendTaskToSolver(userName, expression string, gto kafka.GetterTimeOfOperation) error
 }
 
 type SaverTask interface {
@@ -45,7 +42,7 @@ NewSendTaskHandler принимает задачу и отправляет ее 
 func NewSendTaskHandler(logger *slog.Logger, 
 						senderTask SenderTask, 
 						saverTask SaverTask,
-						gto GetterTimeOfOperation) http.HandlerFunc {
+						gto kafka.GetterTimeOfOperation) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Переменная для запроса
 		var request Request
@@ -57,8 +54,10 @@ func NewSendTaskHandler(logger *slog.Logger,
 			return
 		}
 
+		// Получаем имя пользователя из контекста
 		userName := r.Context().Value("user_name").(string)
 
+		// Сохраняем задачу в базе данных
 		err := saverTask.SaveTask(userName, request.Expression)
 		if err != nil {
 			// Пишем в лог ошибку декодирования
@@ -68,6 +67,7 @@ func NewSendTaskHandler(logger *slog.Logger,
 			return
 		}
 
+		// Отправляем задачу в вычислитель
 		err = senderTask.SendTaskToSolver(userName, request.Expression, gto)
 		if err != nil {
 			// Пишем в лог ошибку декодирования

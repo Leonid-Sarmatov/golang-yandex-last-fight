@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"time"
 
 	_ "github.com/lib/pq"
 	bcrypt "golang.org/x/crypto/bcrypt"
@@ -64,6 +65,15 @@ type TimeOfOperation struct {
 	Subtraction    int `json:"subtraction"`
 	Division       int `json:"division"`
 	Multiplication int `json:"multiplication"`
+}
+
+type Task struct {
+	ID int
+	Expression string
+	Status     int       `json:"status"`
+	Result     string    `json:"result"`
+	BeginTime  time.Time `json:"beginTime"`
+	EndTime    time.Time `json:"endTime"`
 }
 
 func NewPostgres(logger *slog.Logger, connectString string) (*Postgres, error) {
@@ -132,6 +142,9 @@ func NewPostgres(logger *slog.Logger, connectString string) (*Postgres, error) {
 	return postgres, nil
 }
 
+/*
+СheckAccountExist проверяет аккаунт на существование
+*/
 func (p *Postgres) СheckAccountExist(userName string) (bool, error) {
 	rows, err := p.DB.Query("SELECT * FROM users_table WHERE user_name=$1", userName)
 	if err != nil {
@@ -156,6 +169,9 @@ func (p *Postgres) СheckAccountExist(userName string) (bool, error) {
 	return false, nil
 }
 
+/*
+CreateNewAccount создает аккаунт в таблице пользователей
+*/
 func (p *Postgres) CreateNewAccount(userName, password string) error {
 	passwordHash, err := GenerateHash(password)
 	if err != nil {
@@ -170,6 +186,9 @@ func (p *Postgres) CreateNewAccount(userName, password string) error {
 	return nil
 }
 
+/*
+СheckAccountPassword проверяет введенный клиентом пароль от аккаунта
+*/
 func (p *Postgres) СheckAccountPassword(userName, password string) (bool, error) {
 	rows, err := p.DB.Query("SELECT password FROM users_table WHERE user_name=$1", userName)
 	if err != nil {
@@ -192,4 +211,25 @@ func (p *Postgres) СheckAccountPassword(userName, password string) (bool, error
 	}
 
 	return false, nil
+}
+
+/*
+SaveTask сохраняет задачу в базу данных
+*/
+func (p *Postgres) SaveTask(userName, expression string) error {
+	return nil
+}
+
+func (p *Postgres) GetTimeOfOperation() (*TimeOfOperation, error) {
+	var timeOfOperation TimeOfOperation
+	return &timeOfOperation, nil
+}
+
+func (p *Postgres) GetListOfTask() ([]Task, error) {
+	listOfTask := make([]Task, 0)
+	return listOfTask, nil
+}
+
+func (p *Postgres) SetTimeOfOperation(timeOfOperation TimeOfOperation) error {
+	return nil
 }
