@@ -30,6 +30,8 @@ func NewGetListOfSolversHandler(logger *slog.Logger) http.HandlerFunc {
 			return
 		}*/
 
+		logger.Info("=====================================================")
+
 		// Выдаем список с задачами клиенту
 		render.JSON(w, r, Response{
 			Status:   "OK",

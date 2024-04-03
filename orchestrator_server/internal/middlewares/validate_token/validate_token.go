@@ -29,14 +29,16 @@ func ValidateJWTToken(logger *slog.Logger, j JWTValidator) func(http.Handler) ht
 
 			// Проверяем токен
 			name, err := j.ValidateJWTToken(tokenString)
-			if err != nil || name == "" {
+			if err != nil {//|| name == "" {
 				http.Error(w, "Invalid or outdated token", http.StatusBadRequest)
+				logger.Info("-----------------------------------------"+err.Error())
 				return
 			}
+			logger.Info("++++++++++++++++++++++++++++++++++++++++")
 
             // Если токен верный, то передаем имя пользователя из токена в контекст
 			ctx := context.WithValue(r.Context(), "user_name", name)
-			
+
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 		return http.HandlerFunc(fn)

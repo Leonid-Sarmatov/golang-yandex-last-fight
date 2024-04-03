@@ -25,7 +25,7 @@ func (j *JWTManager) CreateJWTToken(userName string) (string, error) {
 	now := time.Now()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"name": userName,
-		"nbf":  now.Add(time.Minute).Unix(),
+		"nbf":  now.Unix(),
 		"exp":  now.Add(5 * time.Minute).Unix(),
 		"iat":  now.Unix(),
 	})

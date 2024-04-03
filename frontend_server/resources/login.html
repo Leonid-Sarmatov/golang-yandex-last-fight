@@ -126,7 +126,7 @@
             console.log(response)
             if (response["token"] != "" && response["message"] == "login") {
               sessionStorage.setItem('jwtToken', response["token"]);
-              console.log(sessionStorage.getItem('jwtToken'))
+              console.log(sessionStorage.getItem('jwtToken'));
               window.location.href = 'http://localhost:8081/account';
             } else {
               responseWindow.innerHTML = `<p class="response-message">Error: ${response.error}</p>`;

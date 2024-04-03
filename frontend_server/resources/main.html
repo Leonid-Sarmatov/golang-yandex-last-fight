@@ -157,8 +157,9 @@
 
     // Создаем запрос
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "http://localhost:8081/sendExpression", true);
+    xhr.open("POST", "http://localhost:8082/api/sendExpression", true);
     xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.setRequestHeader("Authorization", `Bearer ${sessionStorage.getItem('jwtToken')}`);
     xhr.send(JSON.stringify(userData));
 
     xhr.onreadystatechange = function() {
@@ -185,8 +186,9 @@
   // Получение от сервера таблицы с задачами
   function getListOfTask() {
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "http://localhost:8081/getListOfTask", true);
+    xhr.open("GET", "http://localhost:8082/api/getListOfTask", true);
     xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.setRequestHeader("Authorization", `Bearer ${sessionStorage.getItem('jwtToken')}`);
 
     xhr.onreadystatechange = function() {
       if (xhr.readyState === 4 && xhr.status === 200) {
@@ -199,10 +201,10 @@
   }
 
   // Заполнение таблицы с задачами
-  function populateOperationList(operations) {
+  function populateOperationList(operations) { 
     const operationList = document.getElementById('operationList');
     operationList.innerHTML = ''; // Clear existing list items
-    operations.forEach(operation => {
+    operations.list_of_task.forEach(operation => {
       const listItem = document.createElement('li');
       console.log(operation.expression);
       var status = ""
@@ -241,8 +243,9 @@
 
     // Создаем запрос
     var xhr = new XMLHttpRequest();
-    xhr.open("PUT", "http://localhost:8081/sendTimeOfOperations", true);
+    xhr.open("POST", "http://localhost:8082/api/sendTimeOfOperations", true);
     xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.setRequestHeader("Authorization", `Bearer ${sessionStorage.getItem('jwtToken')}`);
     xhr.send(JSON.stringify(userData));
 
     xhr.onreadystatechange = function() {
@@ -256,8 +259,9 @@
   // Получение от сервера таблицы с вычислительными сервисами
   function getListOfSolvers() {
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "http://localhost:8081/getListOfSolvers", true);
+    xhr.open("GET", "http://localhost:8082/api/getListOfSolvers", true);
     xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.setRequestHeader("Authorization", `Bearer ${sessionStorage.getItem('jwtToken')}`);
 
     xhr.onreadystatechange = function() {
       if (xhr.readyState === 4 && xhr.status === 200) {
