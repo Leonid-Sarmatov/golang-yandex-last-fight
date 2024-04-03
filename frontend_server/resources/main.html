@@ -157,7 +157,7 @@
 
     // Создаем запрос
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "http://localhost:8082/api/sendExpression", true);
+    xhr.open("POST", "http://localhost:8082/api/sendTask", true);
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.setRequestHeader("Authorization", `Bearer ${sessionStorage.getItem('jwtToken')}`);
     xhr.send(JSON.stringify(userData));
@@ -204,28 +204,22 @@
   function populateOperationList(operations) { 
     const operationList = document.getElementById('operationList');
     operationList.innerHTML = ''; // Clear existing list items
-    operations.list_of_task.forEach(operation => {
+    operations["list_of_task"].forEach(operation => {
       const listItem = document.createElement('li');
       console.log(operation.expression);
       var status = ""
-      if (operation.status === 1) {
+      if (operation.status === 0) {
         status = "Successfully parsed and accepted for processing";
       }
-      if (operation.status === 2) {
-        status = "In the process of calculation";
-      }
-      if (operation.status === 3) {
+      if (operation.status === 1) {
         status = "Successfully calculated";
-      }
-      if (operation.status === 4) {
-        status = "Failed calculation";
       }
       listItem.innerHTML = `
         <strong>Status:</strong> ${status}<br>
         <strong>Expression:</strong> ${operation.expression}<br>
         <strong>Result:</strong> ${operation.result}<br>
-        <strong>Creation Date:</strong> ${operation.beginTime}<br>
-        <strong>Completion Date:</strong> ${operation.endTime}<br>
+        <strong>Creation Date:</strong> ${operation.begin_time}<br>
+        <strong>Completion Date:</strong> ${operation.end_time}<br>
       `;
       operationList.appendChild(listItem);
     });  
@@ -235,10 +229,10 @@
   function sendOperationsTimes() {
     // Структура запроса
     var userData = {
-      additionTime: document.getElementById("additionTime").value,
-	    subtractionTime: document.getElementById("subtractionTime").value,
-	    divisionTime: document.getElementById("divisionTime").value,
-	    multiplicationTime: document.getElementById("multiplicationTime").value
+      addition: parseInt(document.getElementById("additionTime").value),
+	    subtraction: parseInt(document.getElementById("subtractionTime").value),
+	    division: parseInt(document.getElementById("divisionTime").value),
+	    multiplication: parseInt(document.getElementById("multiplicationTime").value)
     };
 
     // Создаем запрос

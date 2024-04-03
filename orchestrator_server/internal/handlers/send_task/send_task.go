@@ -3,6 +3,8 @@ package send_task
 import (
 	"log/slog"
 	"net/http"
+	"regexp"
+	"strings"
 
 	"github.com/go-chi/render"
 
@@ -54,6 +56,16 @@ func NewSendTaskHandler(logger *slog.Logger,
 			return
 		}
 
+		// Проверяем выражение на валидность
+		ok := isValidExpression(request.Expression)
+		if !ok {
+			// Пишем в лог ошибку запроса
+			logger.Error("Expression is not correct")
+			// Создаем ответ с ошибкой
+			render.JSON(w, r, Response{Status: "Error", Error: "Expression is not correct"})
+			return
+		}
+
 		// Получаем имя пользователя из контекста
 		userName := r.Context().Value("user_name").(string)
 
@@ -83,4 +95,31 @@ func NewSendTaskHandler(logger *slog.Logger,
 			Message:  "The task was successfully accepted and sent to the solver",
 		})
 	}
+}
+
+func isValidExpression(expr string) bool {
+	pattern1 := regexp.MustCompile(`[\d\+\-\*/]`)
+	pattern2 := regexp.MustCompile(`[\+\-\*/]`)
+	arr := strings.Split(expr, "")
+	for i, ch := range arr {
+		if !pattern1.MatchString(ch) {
+			return false
+		}
+
+		if (i != len(expr)-1) &&
+			pattern2.MatchString(arr[i]) &&
+			pattern2.MatchString(arr[i+1]) {
+			return false
+		}
+
+		if i == 0 && (ch == "*" || ch == "/") {
+			return false
+		}
+
+		if (i == len(expr)-1) && pattern2.MatchString(ch) {
+			return false
+		}
+	}
+
+	return true
 }

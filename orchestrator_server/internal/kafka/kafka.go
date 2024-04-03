@@ -11,7 +11,7 @@ import (
 )
 
 type KafkaManager struct {
-	Produser sarama.AsyncProducer
+	Produser *sarama.AsyncProducer
 	TaskTopicName    string
 	ResultTopicName    string
 }
@@ -50,7 +50,7 @@ func NewKafkaManager(logger *slog.Logger, cfg *config.Config) *KafkaManager {
 	// Создание консумера, принимающего решенные задачи
 
 
-	kafkaManager.Produser = producer
+	kafkaManager.Produser = &producer
 	kafkaManager.TaskTopicName = cfg.KafkaConfig.TopicName
 	logger.Info("Kafka init - OK")
 	return &kafkaManager
@@ -78,6 +78,6 @@ func (k *KafkaManager) SendTaskToSolver(userName, expression string, gto GetterT
 	}
 
 	// Отправляем сообщение
-	k.Produser.Input() <- message
+	(*k.Produser).Input() <- message
 	return nil
 }

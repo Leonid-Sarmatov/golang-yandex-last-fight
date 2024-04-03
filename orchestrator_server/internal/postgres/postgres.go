@@ -71,7 +71,7 @@ type TimeOfOperation struct {
 
 type Task struct {
 	ID         int
-	Expression string
+	Expression string    `json:"expression"`
 	Status     int       `json:"status"`
 	Result     string    `json:"result"`
 	UserName   string    `json:"user_name"`
@@ -373,9 +373,9 @@ func (p *Postgres) SetTimeOfOperation(timeOfOperation TimeOfOperation) error {
 			return err
 		}
 		if isIntable {
-			query = `UPDATE operation_table SET timeInSecond = $2 WHERE operation = $1;`
+			query = `UPDATE operation_table SET time = $2 WHERE operation = $1;`
 		} else {
-			query = `INSERT INTO operation_table (operation, timeInSecond) VALUES ($1, $2);`
+			query = `INSERT INTO operation_table (operation, time) VALUES ($1, $2);`
 		}
 		_, err = p.DB.Exec(query, key, val)
 		if err != nil {
