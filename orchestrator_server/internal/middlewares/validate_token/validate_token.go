@@ -1,8 +1,9 @@
 package validatetoken
 
 import (
-	"net/http"
+	"context"
 	"log/slog"
+	"net/http"
 	"strings"
 )
 
@@ -33,7 +34,10 @@ func ValidateJWTToken(logger *slog.Logger, j JWTValidator) func(http.Handler) ht
 				return
 			}
 
-			next.ServeHTTP(w, r)
+            // Если токен верный, то передаем имя пользователя из токена в контекст
+			ctx := context.WithValue(r.Context(), "user_name", name)
+			
+			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 		return http.HandlerFunc(fn)
 	}

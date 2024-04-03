@@ -21,7 +21,7 @@ Request структура ответа на запрос
 type Response struct {
 	Status   string `json:"status"`
 	Error    string `json:"error,omitempty"`
-	Message string `json:"message,omitempty"`
+	Message  string `json:"message,omitempty"`
 	JWTToken string `json:"token,omitempty"`
 }
 
@@ -73,9 +73,9 @@ func NewLoginHandler(logger *slog.Logger, j JWTCreater, checkAccount CheckAccoun
 
 		// Выдаем токен клиенту
 		render.JSON(w, r, Response{
-			Status: "OK",
+			Status:   "OK",
 			JWTToken: token,
-			Message: "login",
+			Message:  "login",
 		})
 	}
 }

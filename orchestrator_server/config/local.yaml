@@ -5,6 +5,10 @@ postgres:
   user: "leonid"
   password: "password"
   dbname: "main_database"
+kafka:
+  host: "last_fight_kafka"
+  port: "9092"
+  topic: "topic-solver"
 http_server:
   address: ":8082" # Адрес сервера
   request_timeout: 4s # Таймаут запроса

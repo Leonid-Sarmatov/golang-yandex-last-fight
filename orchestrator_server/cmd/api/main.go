@@ -1,25 +1,27 @@
 package main
 
 import (
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
-	"io"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
 	config "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/config"
+	get_list_of_solvers "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/get_list_of_solvers"
+	get_list_of_task "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/get_list_of_task"
 	login "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/login"
 	registration "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/registration"
+	"github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/send_task"
+	send_task "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/send_task"
+	send_time_of_operation "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/send_time_of_operation"
 	jwt_manager "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/jwt"
+	"github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/kafka"
 	cors_headers "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/middlewares/cors_headers"
+	validate_token "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/middlewares/validate_token"
 	postgres "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/postgres"
-	//validate_token "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/middlewares/validate_token"
-	//sendTask "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/send_task"
-	//getListOfTask "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/get_list_of_task"
-	//sendTimeOfOperations "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/send_time_of_operations"
-	//getListOfSolvers "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/get_list_of_solvers"
 )
 
 func main() {
@@ -35,6 +37,9 @@ func main() {
 
 	// Создаем структуру для работы с JWT токенами
 	jwtManager := jwt_manager.NewJWTManager()
+
+	// Создаем структуру для работы с брокером сообщений
+	kafkaManager := kafka.NewKafkaManager(logger, cfg)
 
 	// Создаем структуру для работы с базой данных
 	postgres, err := postgres.NewPostgres(logger, postgres.ConnectStringFromConfig(cfg))
@@ -62,14 +67,14 @@ func main() {
 	router.Post("/login", login.NewLoginHandler(logger, jwtManager, postgres))
 
 	// Эндпоинт для входа в аккаунт
-	router.Post("/registration", registration.NewRegistrationHandler(logger, postgres))
+	router.Post("/registration", registration.NewRegistrationHandler(logger, postges))
 
-	/*router.Route("/api", func(r chi.Router) {
+	router.Route("/api", func(r chi.Router) {
 		// Подключаем middleware для проверки токена запроса
 		r.Use(validate_token.ValidateJWTToken(logger, jwtManager))
 
 		// Эндпоинт принимающий выражение
-		//r.Post("/sendTask")
+		r.Post("/sendTask", send_task.NewSendTaskHandler(logger, kafkaManager, postgres))
 
 		// Эндпоинт возвращающий список со всеми задачами
 		//r.Get("/getListOfTask")
@@ -79,7 +84,7 @@ func main() {
 
 		// Эндпоинт возвращающий список с вычислителями и информацией о них
 		//r.Get("/getListOfSolvers")
-	})*/
+	})
 
 	// Создаем сервер
 	server := &http.Server{

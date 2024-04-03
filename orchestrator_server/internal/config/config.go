@@ -11,6 +11,7 @@ import (
 type Config struct {
 	EnvMode          string `yaml:"environment_mode" env-default:"local"`
 	PostgresConfig   `yaml:"postgres"`
+	KafkaConfig      `yaml:"kafka"`
 	HTTPServerConfig `yaml:"http_server"`
 }
 
@@ -20,6 +21,12 @@ type PostgresConfig struct {
 	User     string `yaml:"user" env-default:"postgres"`
 	Password string `yaml:"password" env-default:"postgres"`
 	DBname   string `yaml:"dbname" env-default:"database"`
+}
+
+type KafkaConfig struct {
+	Host      string `yaml:"host" env-default:"kafka"`
+	Port      string `yaml:"port" env-default:"9092"`
+	TopicName string `yaml:"topic" env-default:"solver-topic"`
 }
 
 type HTTPServerConfig struct {

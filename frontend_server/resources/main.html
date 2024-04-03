@@ -74,28 +74,25 @@
 <div class="container">
   <!-- Tab navigation buttons -->
   <div class="tab-navigation">
-    <button onclick="openTab('tab1')">Tab 1</button>
-    <button onclick="openTab('tab2')">Tab 2</button>
-    <button onclick="openTab('tab3')">Tab 3</button>
-    <button onclick="openTab('tab4')">Tab 4</button>
+    <button onclick="openTab('tab1')">Send expression</button>
+    <button onclick="openTab('tab2')">Tasks performed</button>
+    <button onclick="openTab('tab3')">Mathematical Operations</button>
+    <button onclick="openTab('tab4')">Solvers list</button>
   </div>
 
   <div id="tab1" class="tab active-tab">
-    <h2>First Tab</h2>
     <input type="text" id="inputString" placeholder="Enter a string">
     <button onclick="sendExpression()">Send to Server</button>
     <div class="response-window" id="responseWindow"></div>
   </div>
 
   <div id="tab2" class="tab">
-    <h2>Second Tab</h2>
     <ul id="operationList">
       <!-- Expressions will be added here dynamically -->
     </ul>
   </div>
 
   <div id="tab3" class="tab">
-    <h2>Mathematical Operations</h2>
     <ul id="operationFormList">
       <!-- Operation forms will be added here dynamically -->
       <li>
@@ -131,7 +128,6 @@
   </div>
 
   <div id="tab4" class="tab">
-    <h2>Fourth Tab</h2>
     <ul id="solversList">
       <!-- Servers will be added here dynamically -->
     </ul>

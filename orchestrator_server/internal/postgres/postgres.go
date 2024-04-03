@@ -59,6 +59,13 @@ type User struct {
 	Password string
 }
 
+type TimeOfOperation struct {
+	Addition       int `json:"addition"`
+	Subtraction    int `json:"subtraction"`
+	Division       int `json:"division"`
+	Multiplication int `json:"multiplication"`
+}
+
 func NewPostgres(logger *slog.Logger, connectString string) (*Postgres, error) {
 	// Пробуем создать соединение с базой данных
 	db, err := sql.Open("postgres", connectString)
@@ -120,6 +127,8 @@ func NewPostgres(logger *slog.Logger, connectString string) (*Postgres, error) {
 		return postgres, err
 	}
 
+	logger.Info("Postgres init - OK")
+
 	return postgres, nil
 }
 
@@ -142,7 +151,7 @@ func (p *Postgres) СheckAccountExist(userName string) (bool, error) {
 
 	if len(users) != 0 {
 		return true, nil
-	} 
+	}
 
 	return false, nil
 }
