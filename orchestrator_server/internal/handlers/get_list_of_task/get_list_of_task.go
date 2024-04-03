@@ -19,12 +19,15 @@ type Response struct {
 }
 
 type GetterListOfTask interface {
-	GetListOfTask() ([]postgres.Task, error)
+	GetListOfTask(userName string) ([]postgres.Task, error)
 }
 
 func NewGetListOfTaskHandler(logger *slog.Logger, getterListOfTask GetterListOfTask) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		listOfTask, err := getterListOfTask.GetListOfTask()
+		// Получаем имя пользователя из контекста
+		userName := r.Context().Value("user_name").(string)
+
+		listOfTask, err := getterListOfTask.GetListOfTask(userName)
 		if err != nil {
 			// Пишем в лог ошибку декодирования
 			logger.Error("Get tasks was failed", err.Error())
