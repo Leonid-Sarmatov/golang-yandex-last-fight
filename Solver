@@ -1,0 +1,7 @@
+FROM golang:1.22
+
+WORKDIR /golang_yandex_last_fight
+
+COPY . .
+
+CMD ["go", "run", "solver_server/cmd/app/main.go"]

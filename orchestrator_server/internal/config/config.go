@@ -24,9 +24,10 @@ type PostgresConfig struct {
 }
 
 type KafkaConfig struct {
-	Host      string `yaml:"host" env-default:"kafka"`
-	Port      string `yaml:"port" env-default:"9092"`
-	TopicName string `yaml:"topic" env-default:"solver-topic"`
+	Host            string `yaml:"host" env-default:"kafka"`
+	Port            string `yaml:"port" env-default:"9092"`
+	TaskTopicName   string `yaml:"task_topic" env-default:"solver-topic"`
+	ResultTopicName string `yaml:"result_topic" env-default:"result-topic"`
 }
 
 type HTTPServerConfig struct {

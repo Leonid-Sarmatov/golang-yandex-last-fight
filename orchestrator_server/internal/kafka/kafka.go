@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 
 	"github.com/IBM/sarama"
@@ -11,9 +12,9 @@ import (
 )
 
 type KafkaManager struct {
-	Produser *sarama.AsyncProducer
-	TaskTopicName    string
-	ResultTopicName    string
+	Produser        sarama.AsyncProducer
+	TaskTopicName   string
+	ResultTopicName string
 }
 
 type Task struct {
@@ -49,9 +50,9 @@ func NewKafkaManager(logger *slog.Logger, cfg *config.Config) *KafkaManager {
 
 	// Создание консумера, принимающего решенные задачи
 
-
-	kafkaManager.Produser = &producer
-	kafkaManager.TaskTopicName = cfg.KafkaConfig.TopicName
+	kafkaManager.Produser = producer
+	kafkaManager.TaskTopicName = cfg.KafkaConfig.TaskTopicName
+	kafkaManager.ResultTopicName = cfg.KafkaConfig.ResultTopicName
 	logger.Info("Kafka init - OK")
 	return &kafkaManager
 }
@@ -73,11 +74,14 @@ func (k *KafkaManager) SendTaskToSolver(userName, expression string, gto GetterT
 	// Создаем сообщение с JSON
 	message := &sarama.ProducerMessage{
 		Topic: k.TaskTopicName,
-		Key:   sarama.StringEncoder("task"),
+		Key:   sarama.StringEncoder("key"),
 		Value: sarama.ByteEncoder(jsonMessage),
 	}
 
+	fmt.Printf("&&&&&&&&&&&&&&&&&&&&&&message %v", message)
+	fmt.Printf("&&&&&&&&&&&&&&&&&&&&&&produser %v", k.Produser)
+
 	// Отправляем сообщение
-	(*k.Produser).Input() <- message
+	k.Produser.Input() <- message
 	return nil
 }
