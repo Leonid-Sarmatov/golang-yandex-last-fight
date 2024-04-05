@@ -38,7 +38,8 @@ func NewSolver(logger *slog.Logger, name string, transmitter Transmitter, heartb
 		for {
 			select {
 			case <-ticker.C:
-				heartbeat.Ping(solver.SolverName)
+				err := heartbeat.Ping(solver.SolverName)
+				logger.Info("Ping was failed", err.Error())
 			}
 		}
 	}()
