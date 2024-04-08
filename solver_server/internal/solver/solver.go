@@ -1,13 +1,17 @@
 package solver
 
 import (
-	kafka "github.com/Leonid-Sarmatov/golang-yandex-last-fight/solver_server/internal/kafka"
 	"log/slog"
 	"time"
 	"sync"
 	"strings"
 	"strconv"
+	"fmt"
+
+	kafka "github.com/Leonid-Sarmatov/golang-yandex-last-fight/solver_server/internal/kafka"
 )
+
+// option go_package = "github.com/Leonid-Sarmatov/golang-yandex-last-fight/solver_server/internal/grpc/proto";
 
 type Transmitter interface {
 	GetTask() (kafka.Task, error)
@@ -58,14 +62,14 @@ func NewSolver(logger *slog.Logger, name string, transmitter Transmitter, heartb
 			}
 
 			// Пробуем решить ее
-			_, err = solver.Calculate(task)
+			res, err := solver.Calculate(task)
 			if err != nil {
 				logger.Info("Can not calculate task")
 				continue
 			}
 
 			// Пробуем отправить результат
-			err = solver.Transmitter.SendResult("")
+			err = solver.Transmitter.SendResult(fmt.Sprintf("%v", res))
 			if err != nil {
 				logger.Info("Can not send result")
 				continue
@@ -76,7 +80,16 @@ func NewSolver(logger *slog.Logger, name string, transmitter Transmitter, heartb
 }
 
 func (s *Solver) Calculate(task kafka.Task) (float64, error) {
+	// Получаем выражение
 	expression := task.Expression
+
+	// Пролучаем время операций
+	timesMap := make(map[string]int)
+	timesMap["+"] = task.Addition
+	timesMap["-"] = task.Subtraction
+	timesMap["/"] = task.Division
+	timesMap["*"] = task.Multiplication
+
 	// Создаем синхронизатор
 	wg := sync.WaitGroup{}
 
@@ -151,7 +164,7 @@ func (s *Solver) Calculate(task kafka.Task) (float64, error) {
 				wg.Add(1)
 				go func(numbers []float64, operations []string, counter int) {
 					defer wg.Done()
-					x, err := FirstPriority(numbers, operations)
+					x, err := FirstPriority(numbers, operations, timesMap)
 					if err != nil {
 						errChan <- err
 					}
@@ -199,7 +212,7 @@ func (s *Solver) Calculate(task kafka.Task) (float64, error) {
 				wg.Add(1)
 				go func(numbers []float64, operations []string, counter int) {
 					defer wg.Done()
-					x, err := FirstPriority(numbers, operations)
+					x, err := FirstPriority(numbers, operations, timesMap)
 					if err != nil {
 						errChan <- err
 					}
@@ -224,7 +237,47 @@ func (s *Solver) Calculate(task kafka.Task) (float64, error) {
 	// после чего получается массив чисел, над которыми остается
 	// совершать только сложения и вычитания, то есть операции второго приоритета
 	//wg.Wait()
-	return SecondPriority(groupResultArray, groupOperatinArray), nil
+	return SecondPriority(groupResultArray, groupOperatinArray, timesMap), nil
+}
+
+/*
+FirstPriority
+*/
+func FirstPriority(arrayOfNumber []float64, arrayOfOperation []string, timesMap map[string]int) (float64, error) {
+	res := arrayOfNumber[0]
+	for i := 0; i < len(arrayOfOperation); i += 1 {
+		switch arrayOfOperation[i] {
+		case "*":
+			res *= arrayOfNumber[i+1]
+			time.Sleep(time.Duration(timesMap["*"]) * time.Second)
+		case "/":
+			if arrayOfNumber[i+1] != 0.0 {
+				res /= arrayOfNumber[i+1]
+				time.Sleep(time.Duration(timesMap["/"]) * time.Second)
+			} else {
+				return 0.0, fmt.Errorf("Division by zero: %v / %v", res, arrayOfNumber[i+1])
+			}
+		}
+	}
+	return res, nil
+}
+
+/*
+SecondPriority
+*/
+func SecondPriority(arrayOfNumber []float64, arrayOfOperation []string, timesMap map[string]int) float64 {
+	res := arrayOfNumber[0]
+	for i := 0; i < len(arrayOfOperation); i += 1 {
+		switch arrayOfOperation[i] {
+		case "+":
+			res += arrayOfNumber[i+1]
+			time.Sleep(time.Duration(timesMap["+"]) * time.Second)
+		case "-":
+			res -= arrayOfNumber[i+1]
+			time.Sleep(time.Duration(timesMap["-"]) * time.Second)
+		}
+	}
+	return res
 }
 
 type SolverManager struct {

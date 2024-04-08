@@ -1,0 +1,21 @@
+syntax = "proto3";
+package grpc;
+option go_package = "github.com/Leonid-Sarmatov/golang-yandex-last-fight/solver_server/internal/grpc/proto";
+
+message Solver {
+    string solverName = 1;
+    string solvingNowExpression = 2;
+}
+
+message Empty {
+
+}
+
+service GeometryService {
+    rpc PingSolver (Solver) returns (Empty); 
+}
+
+
+
+
+

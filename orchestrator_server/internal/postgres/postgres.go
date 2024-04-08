@@ -385,3 +385,12 @@ func (p *Postgres) SetTimeOfOperation(timeOfOperation TimeOfOperation) error {
 	
 	return nil
 }
+
+/*
+SaveTaskResult Записывает к задаче результат ее решения
+*/
+func (p *Postgres) SaveTaskResult(userName, expression, result string) error {
+	_, err := p.DB.Exec("UPDATE task_table SET status = $1, result = $2 WHERE expression = $3 AND user_name = $4", 
+						1, result, expression, userName)	
+	return err
+}
