@@ -31,6 +31,7 @@ type JWTCreater interface {
 
 type CheckAccount interface {
 	СheckAccountExist(userName string) (bool, error)
+	СheckAccountPassword(userName, password string) (bool, error)
 }
 
 /*
@@ -58,6 +59,15 @@ func NewLoginHandler(logger *slog.Logger, j JWTCreater, checkAccount CheckAccoun
 			logger.Error("Searching user was failed")
 			// Создаем ответ с ошибкой
 			render.JSON(w, r, Response{Status: "Error", Error: "Searching user was failed"})
+			return
+		}
+
+		ok, err = checkAccount.СheckAccountPassword(request.UserName, request.Password)
+		if err != nil || !ok {
+			// Пишем в лог ошибку поиска в системе
+			logger.Error("Invalid password")
+			// Создаем ответ с ошибкой
+			render.JSON(w, r, Response{Status: "Error", Error: "Invalid password"})
 			return
 		}
 

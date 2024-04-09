@@ -37,14 +37,14 @@ func main() {
 	// Создаем структуру для работы с JWT токенами
 	jwtManager := jwt_manager.NewJWTManager()
 
-	// Создаем структуру для работы с брокером сообщений
-	kafkaManager := kafka.NewKafkaManager(logger, cfg)
-
 	// Создаем структуру для работы с базой данных
 	postgres, err := postgres.NewPostgres(logger, postgres.ConnectStringFromConfig(cfg))
 	if err != nil {
 		panic(err)
 	}
+
+	// Создаем структуру для работы с брокером сообщений
+	kafkaManager := kafka.NewKafkaManager(logger, cfg, postgres)
 
 	//fuck(logger)
 

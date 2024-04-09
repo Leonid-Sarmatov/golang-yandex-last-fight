@@ -55,31 +55,36 @@ func NewKafkaManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResult
 		logger.Info("Can not create new producer", err.Error())
 	}
 
+	// Создаем поток с логом, для просмотра подтверждений сообщений
+	go func() {
+		for {
+			select {
+			case <-producer.Successes():
+				logger.Info("Task sent was successful")
+			}
+		}
+	}()
+
 	// Создание настроек
 	config = sarama.NewConfig()
-	config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRoundRobin
+	config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
 
 	// Создание консумера, принимающего решенные задачи
 	consumer, err := sarama.NewConsumerGroup([]string{
 		cfg.KafkaConfig.Host + ":" + cfg.KafkaConfig.Port,
-		}, "group", config)
+		}, "orchestrator-group", config)
 	if err != nil {
 		logger.Info("Can not create new conumer", err.Error())
 	}
-
-	// Создаем контекст для консумера 
-	//ctx, _ := context.WithCancel(context.Background())
 
 	// Создаем кастомный приемник сообщений
 	handler := &MessageHandler{}
 	handler.Saver = sr
 
-	// Запуск потока приема сообщений с результатами и сохранения их в базе данных
-	// Если сохранить в базе данных результат не удается, сообщение остается неподтвержденным
-	// и будет находиться в очереди, пока не будет успешно обработано
+	// Запуск потока приема сообщений с задачами
 	go func() {
 		for {
-			err := consumer.Consume(context.Background(), []string{cfg.KafkaConfig.ResultTopicName}, handler)
+			err := consumer.Consume(context.Background(), []string{"topic-result"}, handler)
 			if err != nil {
 				logger.Info("Error in consumer: ", err.Error())
 			}
@@ -105,6 +110,9 @@ func (k *KafkaManager) SendTaskToSolver(userName, expression string, gto GetterT
 		UserName:        userName,
 		TimeOfOperation: *timeOfOperation,
 	})
+	if err != nil {
+		return err
+	}
 
 	// Создаем сообщение с JSON
 	message := &sarama.ProducerMessage{
