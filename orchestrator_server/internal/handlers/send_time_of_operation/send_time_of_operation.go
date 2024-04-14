@@ -18,7 +18,7 @@ type Response struct {
 }
 
 type SetterTimeOfOperation interface {
-	SetTimeOfOperation(postgres.TimeOfOperation) error
+	SetTimeOfOperation(userName string, t postgres.TimeOfOperation) error
 }
 
 func NewSendTimeOfOperationsHandler(logger *slog.Logger, sto SetterTimeOfOperation) http.HandlerFunc {
@@ -33,8 +33,11 @@ func NewSendTimeOfOperationsHandler(logger *slog.Logger, sto SetterTimeOfOperati
 			return
 		}
 
+		// Получаем имя пользователя из контекста
+		userName := r.Context().Value("user_name").(string)
+
 		// Записываем время выполнения операций
-		err := sto.SetTimeOfOperation(request)
+		err := sto.SetTimeOfOperation(userName, request)
 		if err != nil {
 			// Пишем в лог ошибку декодирования
 			logger.Error("Set time of operation was failed", err.Error())

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"time"
+	"sync"
 
 	"github.com/IBM/sarama"
 )
@@ -29,21 +30,24 @@ type Result struct {
 }
 
 type KafkaManager struct {
-	Name string
 	Produser        sarama.AsyncProducer
 	TaskTopicName   string
 	ResultTopicName string
+	MX 				*sync.Mutex
+	SolverMap       map[string]int
+	Counter         int
 }
 
 type Heartbeat interface {
 	Ping(string) error
 }
 
-func NewKafkaManager(name string, heartbeat Heartbeat) *KafkaManager {
+func NewKafkaManager(heartbeat Heartbeat) *KafkaManager {
 	var kafkaManager KafkaManager
 	kafkaManager.TaskTopicName = "topic-solver"
 	kafkaManager.ResultTopicName = "topic-result"
-	kafkaManager.Name = name
+	kafkaManager.MX = &sync.Mutex{}
+	kafkaManager.SolverMap = make(map[string]int)
 
 	// Создаем тикер на одну секунду
 	ticker := time.NewTicker(1 * time.Second)
@@ -53,7 +57,7 @@ func NewKafkaManager(name string, heartbeat Heartbeat) *KafkaManager {
 		for {
 			select {
 			case <-ticker.C:
-				err := heartbeat.Ping(kafkaManager.Name)
+				err := heartbeat.Ping("")
 				if err != nil {
 					log.Printf("Ping was failed: %v", err.Error())
 				}
@@ -89,7 +93,14 @@ func NewKafkaManager(name string, heartbeat Heartbeat) *KafkaManager {
 	config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
 
 	// Создание консумера, принимающего задачи
-	consumer, err := sarama.NewConsumerGroup([]string{
+	consumer1, err := sarama.NewConsumerGroup([]string{
+		"kafka:9092",
+		}, "solver-group", config)
+	if err != nil {
+		log.Printf("Can not create new conumer: %v", err.Error())
+	}
+
+	consumer2, err := sarama.NewConsumerGroup([]string{
 		"kafka:9092",
 		}, "solver-group", config)
 	if err != nil {
@@ -98,9 +109,30 @@ func NewKafkaManager(name string, heartbeat Heartbeat) *KafkaManager {
 
 	// Запуск потока приема сообщений c задачами и отправки
 	// их вычистителю
+	mh1 := MessageHandler {
+		Name: "Solver 1",
+		ResultTopicName: kafkaManager.ResultTopicName,
+		Producer: &producer,
+	}
+
+	mh2 := MessageHandler {
+		Name: "Solver 2",
+		ResultTopicName: kafkaManager.ResultTopicName,
+		Producer: &producer,
+	}
+
 	go func() {
 		for {
-			err := consumer.Consume(context.Background(), []string{kafkaManager.TaskTopicName}, &kafkaManager)
+			err := consumer1.Consume(context.Background(), []string{kafkaManager.TaskTopicName}, &mh1)
+			if err != nil {
+				log.Printf("Error in consumer: %v", err.Error())
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			err := consumer2.Consume(context.Background(), []string{kafkaManager.TaskTopicName}, &mh2)
 			if err != nil {
 				log.Printf("Error in consumer: %v", err.Error())
 			}
@@ -110,7 +142,13 @@ func NewKafkaManager(name string, heartbeat Heartbeat) *KafkaManager {
 	return &kafkaManager
 }
 
-func (k *KafkaManager) SendResultToOrchestrator(expression, userName, result string) error {
+type MessageHandler struct{
+	Name            string
+	ResultTopicName string
+	Producer        *sarama.AsyncProducer
+}
+
+func (k *MessageHandler) SendResultToOrchestrator(expression, userName, result string) error {
 	// Создаем JSON для отправки в брокер сообщений
 	jsonMessage, err := json.Marshal(Result{
 		Expression:      expression,
@@ -129,14 +167,15 @@ func (k *KafkaManager) SendResultToOrchestrator(expression, userName, result str
 	}
 
 	// Отправляем сообщение
-	k.Produser.Input() <- message
+	(*k.Producer).Input() <- message
 	return nil
 }
 
-func (k *KafkaManager) Setup(sarama.ConsumerGroupSession) error { return nil }
-func (k *KafkaManager) Cleanup(sarama.ConsumerGroupSession) error { return nil }
-func (k *KafkaManager) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+func (k *MessageHandler) Setup(sarama.ConsumerGroupSession) error { return nil }
+func (k *MessageHandler) Cleanup(sarama.ConsumerGroupSession) error { return nil }
+func (k *MessageHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for message := range claim.Messages() {
+		session.MarkMessage(message, "")
 		// Итерируемся по каналу с сообщениями
 		if err := k.processMessage(message); err != nil {
 			// Если обработка сообщения не успешна
@@ -144,12 +183,12 @@ func (k *KafkaManager) ConsumeClaim(session sarama.ConsumerGroupSession, claim s
 			continue
 		}
 		// Если обработка успешна, фиксируем смещение
-		session.MarkMessage(message, "")
+		//session.MarkMessage(message, "")
 	}
 	return nil
 }
 
-func (k *KafkaManager) processMessage(message *sarama.ConsumerMessage) error {
+func (k *MessageHandler) processMessage(message *sarama.ConsumerMessage) error {
 	// Декодируем тело сообщения
 	var task Task
 	err := json.Unmarshal(message.Value, &task)
@@ -159,9 +198,10 @@ func (k *KafkaManager) processMessage(message *sarama.ConsumerMessage) error {
 
 	log.Printf("Task: %v", task)
 	log.Printf("Name: %v", k.Name)
-	time.Sleep(3 * time.Second)
+	time.Sleep(15 * time.Second)
 
 	k.SendResultToOrchestrator(task.Expression, task.UserName, "1234")
+	log.Printf("Commit result from solver: %v", k.Name)
 	return nil
 }
 

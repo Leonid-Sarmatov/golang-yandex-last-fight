@@ -10,6 +10,7 @@ kafka:
   port: "9092"
   task_topic: "topic-solver"
   result_topic: "topic-result"
+  partition_num: 2
 http_server:
   address: ":8082" # Адрес сервера
   request_timeout: 4s # Таймаут запроса

@@ -28,6 +28,7 @@ type KafkaConfig struct {
 	Port            string `yaml:"port" env-default:"9092"`
 	TaskTopicName   string `yaml:"task_topic" env-default:"solver-topic"`
 	ResultTopicName string `yaml:"result_topic" env-default:"result-topic"`
+	PartitionNum    int    `yaml:"partition_num" env-default:"10"`
 }
 
 type HTTPServerConfig struct {

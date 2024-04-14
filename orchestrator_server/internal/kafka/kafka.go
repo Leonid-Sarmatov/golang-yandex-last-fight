@@ -1,10 +1,11 @@
 package kafka
 
 import (
-	"encoding/json"
-	//"fmt"
-	"log/slog"
 	"context"
+	"encoding/json"
+	"fmt"
+	"log/slog"
+	//"strconv"
 
 	"github.com/IBM/sarama"
 
@@ -13,9 +14,11 @@ import (
 )
 
 type KafkaManager struct {
-	Produser        sarama.AsyncProducer
-	TaskTopicName   string
-	ResultTopicName string
+	Produser         sarama.AsyncProducer
+	TaskTopicName    string
+	ResultTopicName  string
+	PartitionCounter int
+	PartitionNum     int
 }
 
 type Task struct {
@@ -31,7 +34,7 @@ type Result struct {
 }
 
 type GetterTimeOfOperation interface {
-	GetTimeOfOperation() (*postgres.TimeOfOperation, error)
+	GetTimeOfOperation(userName string) (*postgres.TimeOfOperation, error)
 }
 
 type SaverTaskResult interface {
@@ -42,6 +45,7 @@ func NewKafkaManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResult
 	var kafkaManager KafkaManager
 	kafkaManager.TaskTopicName = cfg.KafkaConfig.TaskTopicName
 	kafkaManager.ResultTopicName = cfg.KafkaConfig.ResultTopicName
+	kafkaManager.PartitionNum = cfg.KafkaConfig.PartitionNum
 
 	// Создание настроек
 	config := sarama.NewConfig()
@@ -50,9 +54,26 @@ func NewKafkaManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResult
 	// Создание продюсера отправляющего задачи
 	producer, err := sarama.NewAsyncProducer([]string{
 		cfg.KafkaConfig.Host + ":" + cfg.KafkaConfig.Port,
-		}, config)
+	}, config)
 	if err != nil {
 		logger.Info("Can not create new producer", err.Error())
+	} // PartitionNum
+
+	// Создаем админ клиент
+	admin, err := sarama.NewClusterAdmin([]string{
+		cfg.KafkaConfig.Host + ":" + cfg.KafkaConfig.Port,
+	}, config)
+	if err != nil {
+		logger.Info("Error creating Kafka admin client", err.Error())
+	}
+
+	// Создаем топик с нужным количеством разделов
+	err = admin.CreateTopic(cfg.KafkaConfig.TaskTopicName, &sarama.TopicDetail{
+		NumPartitions:     int32(cfg.KafkaConfig.PartitionNum),
+		ReplicationFactor: 1,
+	}, false)
+	if err != nil {
+		logger.Info("Error creating Kafka topic", err.Error())
 	}
 
 	// Создаем поток с логом, для просмотра подтверждений сообщений
@@ -72,7 +93,7 @@ func NewKafkaManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResult
 	// Создание консумера, принимающего решенные задачи
 	consumer, err := sarama.NewConsumerGroup([]string{
 		cfg.KafkaConfig.Host + ":" + cfg.KafkaConfig.Port,
-		}, "orchestrator-group", config)
+	}, "orchestrator-group", config)
 	if err != nil {
 		logger.Info("Can not create new conumer", err.Error())
 	}
@@ -98,8 +119,13 @@ func NewKafkaManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResult
 }
 
 func (k *KafkaManager) SendTaskToSolver(userName, expression string, gto GetterTimeOfOperation) error {
+	// Вычисляем номер партиции
+	if k.PartitionCounter >= k.PartitionNum {
+		k.PartitionCounter = 0
+	}
+
 	// Берем время выполнения для каждой операции
-	timeOfOperation, err := gto.GetTimeOfOperation()
+	timeOfOperation, err := gto.GetTimeOfOperation(userName)
 	if err != nil {
 		return err
 	}
@@ -116,10 +142,13 @@ func (k *KafkaManager) SendTaskToSolver(userName, expression string, gto GetterT
 
 	// Создаем сообщение с JSON
 	message := &sarama.ProducerMessage{
-		Topic: k.TaskTopicName,
-		Key:   sarama.StringEncoder("key"),
-		Value: sarama.ByteEncoder(jsonMessage),
+		Topic:     k.TaskTopicName,
+		Partition: int32(k.PartitionCounter),
+		Key:       sarama.StringEncoder("key-" + string(k.PartitionCounter)),
+		Value:     sarama.ByteEncoder(jsonMessage),
 	}
+	fmt.Printf("^^^^^^^^^Partition counter %v, Partition num %v\n", k.PartitionCounter, k.PartitionNum)
+	k.PartitionCounter += 1
 
 	// Отправляем сообщение
 	k.Produser.Input() <- message
@@ -127,7 +156,7 @@ func (k *KafkaManager) SendTaskToSolver(userName, expression string, gto GetterT
 }
 
 // Структура для кастомного приемника сообщений
-type MessageHandler struct{
+type MessageHandler struct {
 	Saver SaverTaskResult
 }
 
@@ -147,7 +176,7 @@ func (h *MessageHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 }
 
 /*
-processMessage функция обработки сообщения 
+processMessage функция обработки сообщения
 */
 func (h *MessageHandler) processMessage(message *sarama.ConsumerMessage) error {
 	// Декодируем тело сообщения

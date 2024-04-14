@@ -18,11 +18,8 @@ func NewCostul() *Kostul {
 
 func main() {
 	jjj := NewCostul()
-	s1 := kafka.NewKafkaManager("Solver 1", jjj)
-	s2 := kafka.NewKafkaManager("Solver 2", jjj)
-
-	log.Printf("Init OK: %v", s1.Name)
-	log.Printf("Init OK: %v", s2.Name)
+	s1 := kafka.NewKafkaManager(jjj)
+	log.Println(s1.SolverMap)
 
 	for {
 		
