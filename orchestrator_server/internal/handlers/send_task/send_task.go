@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-chi/render"
 
-	kafka "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/kafka"
+	rabbit "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/rabbit"
 	//postgres "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/postgres"
 )
 
@@ -29,7 +29,7 @@ type Response struct {
 }
 
 type SenderTask interface {
-	SendTaskToSolver(userName, expression string, gto kafka.GetterTimeOfOperation) error
+	SendTaskToSolver(userName, expression string, gto rabbit.GetterTimeOfOperation) error
 }
 
 type SaverTask interface {
@@ -44,7 +44,7 @@ NewSendTaskHandler принимает задачу и отправляет ее 
 func NewSendTaskHandler(logger *slog.Logger, 
 						senderTask SenderTask, 
 						saverTask SaverTask,
-						gto kafka.GetterTimeOfOperation) http.HandlerFunc {
+						gto rabbit.GetterTimeOfOperation) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Переменная для запроса
 		var request Request

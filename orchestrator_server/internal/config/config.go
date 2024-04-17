@@ -11,7 +11,7 @@ import (
 type Config struct {
 	EnvMode          string `yaml:"environment_mode" env-default:"local"`
 	PostgresConfig   `yaml:"postgres"`
-	KafkaConfig      `yaml:"kafka"`
+	RabbitConfig      `yaml:"rabbitmq"`
 	HTTPServerConfig `yaml:"http_server"`
 }
 
@@ -23,12 +23,10 @@ type PostgresConfig struct {
 	DBname   string `yaml:"dbname" env-default:"database"`
 }
 
-type KafkaConfig struct {
+type RabbitConfig struct {
 	Host            string `yaml:"host" env-default:"kafka"`
 	Port            string `yaml:"port" env-default:"9092"`
-	TaskTopicName   string `yaml:"task_topic" env-default:"solver-topic"`
-	ResultTopicName string `yaml:"result_topic" env-default:"result-topic"`
-	PartitionNum    int    `yaml:"partition_num" env-default:"10"`
+	TaskExchange    string `yaml:"task-exchange" env-default:"task-exchange"`
 }
 
 type HTTPServerConfig struct {

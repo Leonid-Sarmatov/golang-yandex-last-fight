@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -17,7 +18,7 @@ import (
 	send_task "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/send_task"
 	send_time_of_operation "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/handlers/send_time_of_operation"
 	jwt_manager "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/jwt"
-	kafka "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/kafka"
+	rabbit "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/rabbit"
 	cors_headers "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/middlewares/cors_headers"
 	validate_token "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/middlewares/validate_token"
 	postgres "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/postgres"
@@ -44,8 +45,8 @@ func main() {
 	}
 
 	// Создаем структуру для работы с брокером сообщений
-	kafkaManager := kafka.NewKafkaManager(logger, cfg, postgres)
-
+	rabbitManager := rabbit.NewRabbitManager(logger, cfg, postgres)
+	defer rabbitManager.Close()
 	//fuck(logger)
 
 	// Инициализируем роутер
@@ -73,7 +74,7 @@ func main() {
 		r.Use(validate_token.ValidateJWTToken(logger, jwtManager))
 
 		// Эндпоинт принимающий выражение
-		r.Post("/sendTask", send_task.NewSendTaskHandler(logger, kafkaManager, postgres, postgres))
+		r.Post("/sendTask", send_task.NewSendTaskHandler(logger, rabbitManager, postgres, postgres))
 
 		// Эндпоинт возвращающий список со всеми задачами
 		r.Get("/getListOfTask", get_list_of_task.NewGetListOfTaskHandler(logger, postgres))
@@ -98,6 +99,13 @@ func main() {
 	if err := server.ListenAndServe(); err != nil {
 		logger.Error("Server was stoped")
 	}
+
+	// Создаем канал с сигналом об остановки сервиса
+	osSignalsChan := make(chan os.Signal, 1)
+	signal.Notify(osSignalsChan, os.Interrupt)
+
+	// Ждем сигнал об остановке (Ctrl + C в терминале)
+	<-osSignalsChan
 }
 
 /*

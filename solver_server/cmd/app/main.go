@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"os"
+	"os/signal"
 
 	kafka "github.com/Leonid-Sarmatov/golang-yandex-last-fight/solver_server/internal/kafka"
 )
@@ -21,7 +23,10 @@ func main() {
 	s1 := kafka.NewKafkaManager(jjj)
 	log.Println(s1.SolverMap)
 
-	for {
-		
-	}
+	// Создаем канал с сигналом об остановки сервиса
+	osSignalsChan := make(chan os.Signal, 1)
+	signal.Notify(osSignalsChan, os.Interrupt)
+
+	// Ждем сигнал об остановке (Ctrl + C в терминале)
+	<-osSignalsChan
 }

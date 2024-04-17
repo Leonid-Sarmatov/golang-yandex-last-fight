@@ -3,9 +3,9 @@ package solver
 import (
 	"log/slog"
 	"time"
-	"sync"
-	"strings"
-	"strconv"
+	//"sync"
+	//"strings"
+	//"strconv"
 	"fmt"
 
 	kafka "github.com/Leonid-Sarmatov/golang-yandex-last-fight/solver_server/internal/kafka"
@@ -81,7 +81,7 @@ func NewSolver(logger *slog.Logger, name string, transmitter Transmitter, heartb
 
 func (s *Solver) Calculate(task kafka.Task) (float64, error) {
 	// Получаем выражение
-	expression := task.Expression
+	/*expression := task.Expression
 
 	// Пролучаем время операций
 	timesMap := make(map[string]int)
@@ -237,7 +237,8 @@ func (s *Solver) Calculate(task kafka.Task) (float64, error) {
 	// после чего получается массив чисел, над которыми остается
 	// совершать только сложения и вычитания, то есть операции второго приоритета
 	//wg.Wait()
-	return SecondPriority(groupResultArray, groupOperatinArray, timesMap), nil
+	return SecondPriority(groupResultArray, groupOperatinArray, timesMap), nil*/
+	return 0.0, nil
 }
 
 /*

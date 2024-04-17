@@ -10,6 +10,12 @@ import (
 	"github.com/IBM/sarama"
 )
 
+type Task struct {
+	Instructions string `json:"instructions"`
+	FileName     string `json:"fileName"`
+	FileData     string `json:"fileData"`
+}
+
 type TimeOfOperation struct {
 	Addition       int `json:"addition"`
 	Subtraction    int `json:"subtraction"`
@@ -17,11 +23,11 @@ type TimeOfOperation struct {
 	Multiplication int `json:"multiplication"`
 }
 
-type Task struct {
+/*type Task struct {
 	Expression      string `json:"expression"`
 	UserName        string `json:"user_name"`
 	TimeOfOperation `json:"time_of_operation"`
-}
+}*/
 
 type Result struct {
 	Expression string `json:"expression"`
@@ -31,6 +37,8 @@ type Result struct {
 
 type KafkaManager struct {
 	Produser        sarama.AsyncProducer
+	Consumer1       *sarama.ConsumerGroup
+	Consumer2       *sarama.ConsumerGroup
 	TaskTopicName   string
 	ResultTopicName string
 	MX 				*sync.Mutex
@@ -90,7 +98,6 @@ func NewKafkaManager(heartbeat Heartbeat) *KafkaManager {
 
 	// Создание настроек для kafka консумер
 	config = sarama.NewConfig()
-	config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
 
 	// Создание консумера, принимающего задачи
 	consumer1, err := sarama.NewConsumerGroup([]string{
@@ -139,7 +146,14 @@ func NewKafkaManager(heartbeat Heartbeat) *KafkaManager {
 		}
 	}()
 
+
+
 	return &kafkaManager
+}
+
+func (k *KafkaManager) Close() {
+	(*k.Consumer1).Close()
+	(*k.Consumer2).Close()
 }
 
 type MessageHandler struct{
@@ -175,7 +189,6 @@ func (k *MessageHandler) Setup(sarama.ConsumerGroupSession) error { return nil }
 func (k *MessageHandler) Cleanup(sarama.ConsumerGroupSession) error { return nil }
 func (k *MessageHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for message := range claim.Messages() {
-		session.MarkMessage(message, "")
 		// Итерируемся по каналу с сообщениями
 		if err := k.processMessage(message); err != nil {
 			// Если обработка сообщения не успешна
@@ -183,7 +196,7 @@ func (k *MessageHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 			continue
 		}
 		// Если обработка успешна, фиксируем смещение
-		//session.MarkMessage(message, "")
+		session.MarkMessage(message, "")
 	}
 	return nil
 }
@@ -196,12 +209,13 @@ func (k *MessageHandler) processMessage(message *sarama.ConsumerMessage) error {
 		return err
 	}
 
-	log.Printf("Task: %v", task)
-	log.Printf("Name: %v", k.Name)
-	time.Sleep(15 * time.Second)
+	//log.Printf("Task: %v", task)
+	//log.Printf("Name: %v", k.Name)
+	time.Sleep(5 * time.Second)
 
-	k.SendResultToOrchestrator(task.Expression, task.UserName, "1234")
-	log.Printf("Commit result from solver: %v", k.Name)
+	//k.SendResultToOrchestrator(task.Expression, task.UserName, "1234")
+	log.Printf("MessageKey %v, Name %v, Data %v", message.Key, k.Name, task.FileData)
+	//log.Printf("Commit result from solver: %v", k.Name)
 	return nil
 }
 

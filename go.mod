@@ -3,13 +3,14 @@ module github.com/Leonid-Sarmatov/golang-yandex-last-fight
 go 1.22.0
 
 require (
-	github.com/IBM/sarama v1.43.1
+	github.com/IBM/sarama v1.42.1
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/go-chi/render v1.0.3
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/golang/protobuf v1.5.4
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/lib/pq v1.10.9
+	github.com/rabbitmq/amqp091-go v1.9.0
 	golang.org/x/crypto v0.22.0
 	google.golang.org/grpc v1.63.0
 )

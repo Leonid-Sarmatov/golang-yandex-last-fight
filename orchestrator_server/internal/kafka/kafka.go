@@ -1,20 +1,28 @@
 package kafka
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"log/slog"
+	//"context"
+	//"encoding/json"
+	//"fmt"
+	//"log/slog"
 	//"strconv"
+	//"time"
 
-	"github.com/IBM/sarama"
+	//"github.com/IBM/sarama"
 
-	config "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/config"
-	postgres "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/postgres"
+	//config "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/config"
+	//postgres "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/postgres"
 )
+/*
+type MyMessage struct {
+	Instructions string `json:"instructions"`
+	FileName     string `json:"fileName"`
+	FileData     string `json:"fileData"`
+}
 
 type KafkaManager struct {
-	Produser         sarama.AsyncProducer
+	Produser         *sarama.AsyncProducer
+	Admin            *sarama.ClusterAdmin
 	TaskTopicName    string
 	ResultTopicName  string
 	PartitionCounter int
@@ -69,12 +77,42 @@ func NewKafkaManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResult
 
 	// Создаем топик с нужным количеством разделов
 	err = admin.CreateTopic(cfg.KafkaConfig.TaskTopicName, &sarama.TopicDetail{
-		NumPartitions:     int32(cfg.KafkaConfig.PartitionNum),
+		NumPartitions:     2,//int32(cfg.KafkaConfig.PartitionNum),
 		ReplicationFactor: 1,
 	}, false)
 	if err != nil {
 		logger.Info("Error creating Kafka topic", err.Error())
 	}
+
+	go func() {
+		for {
+			for i := 0; i < 2; i += 1 {
+				jsonMessage := MyMessage{
+					Instructions: "write",
+					FileName:     "data_1.txt",
+					FileData:     strconv.Itoa(int(time.Now().Unix())),
+				}
+
+				jsonData, err := json.Marshal(jsonMessage)
+				if err != nil {
+					//log.Printf("[ERROR] Encoding to JSON was failed: %v\n", err)
+				}
+
+				message := &sarama.ProducerMessage{
+					Topic: kafkaManager.TaskTopicName,
+					Partition: int32(i),
+					Key:   sarama.StringEncoder("key"+strconv.Itoa(i)),
+					Value: sarama.ByteEncoder(jsonData),
+				}
+
+				fmt.Println("key"+strconv.Itoa(i))
+				//fmt.Println("key"+string(i))
+
+				producer.Input() <- message
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}()
 
 	// Создаем поток с логом, для просмотра подтверждений сообщений
 	go func() {
@@ -88,7 +126,7 @@ func NewKafkaManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResult
 
 	// Создание настроек
 	config = sarama.NewConfig()
-	config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
+	//config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
 
 	// Создание консумера, принимающего решенные задачи
 	consumer, err := sarama.NewConsumerGroup([]string{
@@ -113,9 +151,15 @@ func NewKafkaManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResult
 	}()
 
 	// Заполняем поля структуры
-	kafkaManager.Produser = producer
+	kafkaManager.Produser = &producer
+	kafkaManager.Admin = &admin
 	logger.Info("Kafka init - OK")
 	return &kafkaManager
+}
+
+func (k *KafkaManager) Close() {
+	(*k.Produser).Close()
+	(*k.Admin).Close()
 }
 
 func (k *KafkaManager) SendTaskToSolver(userName, expression string, gto GetterTimeOfOperation) error {
@@ -144,14 +188,14 @@ func (k *KafkaManager) SendTaskToSolver(userName, expression string, gto GetterT
 	message := &sarama.ProducerMessage{
 		Topic:     k.TaskTopicName,
 		Partition: int32(k.PartitionCounter),
-		Key:       sarama.StringEncoder("key-" + string(k.PartitionCounter)),
-		Value:     sarama.ByteEncoder(jsonMessage),
+		Key:       sarama.StringEncoder("key-"+strconv.Itoa(k.PartitionCounter)),
+		Value:     sarama.ByteEncoder(jsonMessage),//+strconv.Itoa(k.PartitionCounter)
 	}
 	fmt.Printf("^^^^^^^^^Partition counter %v, Partition num %v\n", k.PartitionCounter, k.PartitionNum)
 	k.PartitionCounter += 1
 
 	// Отправляем сообщение
-	k.Produser.Input() <- message
+	(*k.Produser).Input() <- message
 	return nil
 }
 
@@ -175,9 +219,6 @@ func (h *MessageHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 	return nil
 }
 
-/*
-processMessage функция обработки сообщения
-*/
 func (h *MessageHandler) processMessage(message *sarama.ConsumerMessage) error {
 	// Декодируем тело сообщения
 	var res Result
@@ -191,4 +232,4 @@ func (h *MessageHandler) processMessage(message *sarama.ConsumerMessage) error {
 		return err
 	}
 	return nil
-}
+}*/
