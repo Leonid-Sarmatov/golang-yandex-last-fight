@@ -3,6 +3,7 @@ package rabbit
 import (
 	"context"
 	"encoding/json"
+
 	//"time"
 
 	//"log"
@@ -18,11 +19,12 @@ import (
 )
 
 type RabbitManager struct {
-	Connection   *amqp.Connection
-	Channel      *amqp.Channel
-	TaskExchange string
-	KeyArray     []string
-	KeyCounter   int
+	Connection     *amqp.Connection
+	Channel        *amqp.Channel
+	TaskExchange   string
+	ResultExchange string
+	KeyArray       []string
+	KeyCounter     int
 }
 
 type Task struct {
@@ -56,30 +58,98 @@ func NewRabbitManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResul
 		logger.Info("", err)
 		return &rb
 	}
-    
-	// Создаем канал
+
+	// Создаем канал для отправки задач
 	channel, err := connection.Channel()
 	if err != nil {
 		logger.Info("", err)
 		return &rb
 	}
-	
+
+	// Создаем канал для приема ответов
+	resultChannel, err := connection.Channel()
+	if err != nil {
+		logger.Info("", err)
+		return &rb
+	}
+
+	//Объявляем exchange для отправки задач
 	err = channel.ExchangeDeclare(
 		cfg.RabbitConfig.TaskExchange, // Имя exchange
-		"direct",     // Тип exchange (headers)
-		false,         // durable
-		false,         // auto-deleted
-		false,         // internal
-		false,         // no-wait
-		nil,           // аргументы
+		"direct",                      // Тип exchange (headers)
+		false,                         // durable
+		false,                         // auto-deleted
+		false,                         // internal
+		false,                         // no-wait
+		nil,                           // аргументы
 	)
 	if err != nil {
 		logger.Info("", err)
 		return &rb
 	}
-	logger.Info("&&&&&&&&&&&&&", cfg.RabbitConfig.TaskExchange)
-	
-	keys := make([]string, 0)//[]string{"key1", "key2"}
+
+	//Объявляем exchange для приема ответов
+	/*err = resultChannel.ExchangeDeclare(
+		cfg.RabbitConfig.ResultExchange, // Имя exchange
+		"direct",                      // Тип exchange (headers)
+		false,                         // durable
+		false,                         // auto-deleted
+		false,                         // internal
+		false,                         // no-wait
+		nil,                           // аргументы
+	)
+	if err != nil {
+		logger.Info("", err)
+		return &rb
+	}*/
+
+	// Создаем очередь для приема сообщений
+	q, err := resultChannel.QueueDeclare(
+		cfg.RabbitConfig.ResultExchange, // Имя очереди
+		false,      // durable
+		false,      // delete when unused
+		false,      // exclusive
+		false,      // no-wait
+		nil,        // аргументы
+	)
+	if err != nil {
+		
+	}
+
+	// Получаем сообщения из очереди
+	msgs, err := resultChannel.Consume(
+		q.Name, // queue
+		"",     // consumer
+		true,  // auto-ack
+		false,  // exclusive
+		false,  // no-local
+		false,  // no-wait
+		nil,    // args
+	)
+	if err != nil {
+		
+	}
+
+	// Создаем поток для записи ответов в базу данных
+	go func() {
+		for {
+			select {
+			case msg := <-msgs:
+				var res Result
+				err := json.Unmarshal(msg.Body, &res)
+				if err != nil {
+					logger.Info("Decoding JSON was failed", err)
+				}
+				err = sr.SaveTaskResult(res.UserName, res.Expression, res.Result)
+				if err != nil {
+					logger.Info("Save result was failed", err)
+				}
+			}
+		}
+	}()
+
+	// Создаем массив с ключами для распределения задач по вычислителям 
+	keys := make([]string, 0) //[]string{"key1", "key2"}
 	for i := 1; i <= cfg.RabbitConfig.QuantitySolvers; i += 1 {
 		keys = append(keys, "Solver "+strconv.Itoa(i))
 	}
@@ -95,7 +165,7 @@ func NewRabbitManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResul
 			if err != nil {
 				continue
 			}
-		
+
 			logger.Info("2222!")
 			message := amqp.Publishing{
 				ContentType: "text/plain", Body: body,
@@ -103,10 +173,10 @@ func NewRabbitManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResul
 					"worker": keys[rb.KeyCounter], // Маркируем сообщение
 				},
 			}
-		
+
 			logger.Info("3333!")
 			err = rb.Channel.PublishWithContext(
-				context.Background(), cfg.RabbitConfig.TaskExchange, 
+				context.Background(), cfg.RabbitConfig.TaskExchange,
 				keys[rb.KeyCounter], false, false, message,
 			)
 
@@ -122,7 +192,7 @@ func NewRabbitManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResul
 	rb.Connection = connection
 	rb.Channel = channel
 	rb.TaskExchange = cfg.RabbitConfig.TaskExchange
-	//rb.Re = cfg.RabbitConfig.TaskExchange
+	rb.ResultExchange = cfg.RabbitConfig.ResultExchange
 	return &rb
 }
 
@@ -154,7 +224,7 @@ func (rb *RabbitManager) SendTaskToSolver(userName, expression string, gto Gette
 	}
 
 	err = rb.Channel.PublishWithContext(
-		context.Background(), rb.TaskExchange, 
+		context.Background(), rb.TaskExchange,
 		rb.KeyArray[rb.KeyCounter], false, false, message,
 	)
 

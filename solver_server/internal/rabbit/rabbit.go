@@ -3,12 +3,12 @@ package rabbit
 import (
 	"context"
 	"encoding/json"
-	"time"
+	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"sync"
-	"strconv"
-	"fmt"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -33,12 +33,13 @@ type Result struct {
 }
 
 type RabbitManager struct {
-	Connection   *amqp.Connection
-	Channel      *amqp.Channel
-	TaskExchange string
-	Key          string
-	KeyCounter   int
-	KeyMax       int
+	Connection     *amqp.Connection
+	Channel        *amqp.Channel
+	TaskExchange   string
+	ResultExchange string
+	Key            string
+	KeyCounter     int
+	KeyMax         int
 }
 
 type Heartbeat interface {
@@ -47,6 +48,7 @@ type Heartbeat interface {
 
 func NewRabbitManager(key string, heartbeat Heartbeat) *RabbitManager {
 	var rb RabbitManager
+	rb.ResultExchange = "result_exchange"
 
 	// Создаем тикер на одну секунду
 	ticker := time.NewTicker(1 * time.Second)
@@ -70,8 +72,14 @@ func NewRabbitManager(key string, heartbeat Heartbeat) *RabbitManager {
 		log.Fatalf("Ошибка при установке соединения с RabbitMQ: %s", err)
 	}
 
-	// Создаем канал
+	// Создаем канал для чтения задач
 	channel, err := connection.Channel()
+	if err != nil {
+		log.Fatalf("Ошибка при создании канала: %s", err)
+	}
+
+	// Создаем канал для отправки ответов
+	resultChannel, err := connection.Channel()
 	if err != nil {
 		log.Fatalf("Ошибка при создании канала: %s", err)
 	}
@@ -79,19 +87,39 @@ func NewRabbitManager(key string, heartbeat Heartbeat) *RabbitManager {
 	// Объявляем exchange для получения задач
 	err = channel.ExchangeDeclare(
 		"task_exchange", // Имя exchange
-		"direct",      // Тип exchange (может быть direct, fanout, topic, headers)
-		false,         // durable
-		false,         // auto-deleted
-		false,         // internal
-		false,         // no-wait
-		nil,           // аргументы
+		"direct",        // Тип exchange (может быть direct, fanout, topic, headers)
+		false,           // durable
+		false,           // auto-deleted
+		false,           // internal
+		false,           // no-wait
+		nil,             // аргументы
 	)
 	if err != nil {
 		log.Fatalf("Ошибка при объявлении exchange: %s", err)
 	}
 
-	// Объявляем очередь
+	// Объявляем exchange для отправки ответов
+	/*err = resultChannel.ExchangeDeclare(
+		rb.ResultExchange, // Имя exchange
+		"direct",        // Тип exchange (может быть direct, fanout, topic, headers)
+		false,           // durable
+		false,           // auto-deleted
+		false,           // internal
+		false,           // no-wait
+		nil,             // аргументы
+	)
+	if err != nil {
+		log.Fatalf("Ошибка при объявлении exchange: %s", err)
+	}*/
+
+	// Объявляем очередь для приема задач rb.ResultExchange
 	q, err := channel.QueueDeclare("queue", false, false, false, false, nil)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	// Объявляем очередь для отправки ответов
+	resultQueue, err := resultChannel.QueueDeclare(rb.ResultExchange, false, false, false, false, nil)
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
@@ -135,22 +163,21 @@ func NewRabbitManager(key string, heartbeat Heartbeat) *RabbitManager {
 			var body []byte
 			if err != nil {
 				body, err = json.Marshal(Result{
-					Expression: task.Expression, 
-					UserName: task.UserName, 
-					Result: "ERROR",
+					Expression: task.Expression,
+					UserName:   task.UserName,
+					Result:     "ERROR",
 				})
 				if err != nil {
 					log.Printf("Encoding to JSON was failed %v", err)
 				}
 			} else {
 				body, err = json.Marshal(Result{
-					Expression: task.Expression, 
-					UserName: task.UserName, 
-					Result: strconv.FormatFloat(res, 'f', -1, 64),
+					Expression: task.Expression,
+					UserName:   task.UserName,
+					Result:     strconv.FormatFloat(res, 'f', -1, 64),
 				})
 				if err != nil {
 					log.Printf("Encoding to JSON was failed %v", err)
-					log.Printf("Encoding to JSON was failed %v", body)
 				}
 			}
 
@@ -158,11 +185,15 @@ func NewRabbitManager(key string, heartbeat Heartbeat) *RabbitManager {
 				ContentType: "text/plain",
 				Body:        body,
 			}
-	
-			err = channel.PublishWithContext(
-				context.Background(), "task-exchange", 
-				key, false, false, message,
+
+			err = resultChannel.PublishWithContext(
+				context.Background(), "",
+				resultQueue.Name, false, false, message,
 			)
+
+			if err != nil {
+				log.Printf("Send to orchestrator was failed %v", err)
+			}
 		}
 	}()
 
