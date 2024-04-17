@@ -8,7 +8,9 @@ postgres:
 rabbitmq:
   host: "rabbitmq"
   port: "5672"
-  task_exchange: "task-exchange"
+  task_exchange: "task_exchange"
+  result_exchange: "result_exchange"
+  quantity_solvers: 1
 http_server:
   address: ":8082" # Адрес сервера
   request_timeout: 4s # Таймаут запроса

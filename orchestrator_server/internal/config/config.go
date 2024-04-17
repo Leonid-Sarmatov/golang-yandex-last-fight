@@ -26,7 +26,9 @@ type PostgresConfig struct {
 type RabbitConfig struct {
 	Host            string `yaml:"host" env-default:"kafka"`
 	Port            string `yaml:"port" env-default:"9092"`
-	TaskExchange    string `yaml:"task-exchange" env-default:"task-exchange"`
+	TaskExchange    string `yaml:"task_exchange" env-default:"task-exchange"`
+	ResultExchange  string `yaml:"result_exchange" env-default:"result-exchange"`
+	QuantitySolvers int    `yaml:"quantity_solvers"`
 }
 
 type HTTPServerConfig struct {

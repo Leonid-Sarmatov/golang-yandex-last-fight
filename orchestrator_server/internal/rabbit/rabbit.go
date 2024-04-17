@@ -3,9 +3,13 @@ package rabbit
 import (
 	"context"
 	"encoding/json"
+	//"time"
+
+	//"log"
 	"log/slog"
 	"strconv"
-	"time"
+
+	//"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
@@ -17,8 +21,8 @@ type RabbitManager struct {
 	Connection   *amqp.Connection
 	Channel      *amqp.Channel
 	TaskExchange string
+	KeyArray     []string
 	KeyCounter   int
-	KeyMax       int
 }
 
 type Task struct {
@@ -44,18 +48,22 @@ type SaverTaskResult interface {
 func NewRabbitManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResult) *RabbitManager {
 	var rb RabbitManager
 
-	// Устанавливаем соединение с сервером RabbitMQ
-	connection, err := amqp.Dial("amqp://guest:guest@"+cfg.RabbitConfig.Host+":"+cfg.RabbitConfig.Port+"/")
-	if err != nil {
-		logger.Info("Ошибка при установке соединения с RabbitMQ", err)
-	}
+	logger.Info("---NewRabbitManager---") // +cfg.RabbitConfig.Host+":"+cfg.RabbitConfig.Port+"/"
 
+	// Устанавливаем соединение с сервером RabbitMQ "amqp://guest:guest@rabbitmq:5672/"
+	connection, err := amqp.Dial("amqp://guest:guest@rabbitmq:5672/")
+	if err != nil {
+		logger.Info("", err)
+		return &rb
+	}
+    
 	// Создаем канал
 	channel, err := connection.Channel()
 	if err != nil {
-		logger.Info("Ошибка при создании канала", err)
+		logger.Info("", err)
+		return &rb
 	}
-
+	
 	err = channel.ExchangeDeclare(
 		cfg.RabbitConfig.TaskExchange, // Имя exchange
 		"direct",     // Тип exchange (headers)
@@ -66,40 +74,55 @@ func NewRabbitManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResul
 		nil,           // аргументы
 	)
 	if err != nil {
-		logger.Info("Ошибка при объявлении exchange", err)
+		logger.Info("", err)
+		return &rb
 	}
+	logger.Info("&&&&&&&&&&&&&", cfg.RabbitConfig.TaskExchange)
+	
+	keys := make([]string, 0)//[]string{"key1", "key2"}
+	for i := 1; i <= cfg.RabbitConfig.QuantitySolvers; i += 1 {
+		keys = append(keys, "Solver "+strconv.Itoa(i))
+	}
+	rb.KeyArray = keys
 
-	keys := []string{"key1", "key2"}
-
-	go func() {
+	/*go func() {
 		for {
-			for _, val := range keys {
-				body, err := json.Marshal(Task{Expression: "2+2", UserName: "user"})
-				if err != nil {
-					logger.Info("Encoding to JSON was failed", err)
-				}
-
-				message := amqp.Publishing{
-					ContentType: "text/plain",
-					Body:        body,
-					Headers: amqp.Table{
-						"worker": val, // Маркируем сообщение
-					},
-				}
-		
-				err = channel.PublishWithContext(
-					context.Background(), cfg.RabbitConfig.TaskExchange, 
-					val, false, false, message,
-				)
-
-				logger.Info("Send OK", message.Body)
-				time.Sleep(1 * time.Second)
+			if rb.KeyCounter >= len(rb.KeyArray) {
+				rb.KeyCounter = 0
 			}
+			logger.Info("1111!")
+			body, err := json.Marshal(Task{Expression: "2+2", UserName: "user"})
+			if err != nil {
+				continue
+			}
+		
+			logger.Info("2222!")
+			message := amqp.Publishing{
+				ContentType: "text/plain", Body: body,
+				Headers: amqp.Table{
+					"worker": keys[rb.KeyCounter], // Маркируем сообщение
+				},
+			}
+		
+			logger.Info("3333!")
+			err = rb.Channel.PublishWithContext(
+				context.Background(), cfg.RabbitConfig.TaskExchange, 
+				keys[rb.KeyCounter], false, false, message,
+			)
+
+			if err != nil {
+				logger.Info("SSSSSSEEEEEENNNDDDD!", err)
+			}
+			rb.KeyCounter += 1
+
+			time.Sleep(1 * time.Second)
 		}
-	}()
+	}()*/
 
 	rb.Connection = connection
 	rb.Channel = channel
+	rb.TaskExchange = cfg.RabbitConfig.TaskExchange
+	//rb.Re = cfg.RabbitConfig.TaskExchange
 	return &rb
 }
 
@@ -109,6 +132,10 @@ func (rb *RabbitManager) Close() {
 }
 
 func (rb *RabbitManager) SendTaskToSolver(userName, expression string, gto GetterTimeOfOperation) error {
+	if rb.KeyCounter >= len(rb.KeyArray) {
+		rb.KeyCounter = 0
+	}
+
 	times, err := gto.GetTimeOfOperation(userName)
 	if err != nil {
 		return err
@@ -122,14 +149,15 @@ func (rb *RabbitManager) SendTaskToSolver(userName, expression string, gto Gette
 	message := amqp.Publishing{
 		ContentType: "text/plain", Body: body,
 		Headers: amqp.Table{
-			"worker": strconv.Itoa(rb.KeyCounter), // Маркируем сообщение
+			"worker": rb.KeyArray[rb.KeyCounter], // Маркируем сообщение
 		},
 	}
 
 	err = rb.Channel.PublishWithContext(
 		context.Background(), rb.TaskExchange, 
-		strconv.Itoa(rb.KeyCounter), false, false, message,
+		rb.KeyArray[rb.KeyCounter], false, false, message,
 	)
 
+	rb.KeyCounter += 1
 	return nil
 }

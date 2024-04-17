@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/signal"
 
-	kafka "github.com/Leonid-Sarmatov/golang-yandex-last-fight/solver_server/internal/kafka"
+	rabbit "github.com/Leonid-Sarmatov/golang-yandex-last-fight/solver_server/internal/rabbit"
 )
 
 type Kostul struct {}
@@ -20,8 +20,20 @@ func NewCostul() *Kostul {
 
 func main() {
 	jjj := NewCostul()
-	s1 := kafka.NewKafkaManager(jjj)
-	log.Println(s1.SolverMap)
+	s1 := rabbit.NewRabbitManager("Solver 1", jjj)
+	log.Println(s1.Key)
+	
+	s2 := rabbit.NewRabbitManager("Solver 2", jjj)
+	log.Println(s2.Key)
+
+	s3 := rabbit.NewRabbitManager("Solver 3", jjj)
+	log.Println(s3.Key)
+	
+	s4 := rabbit.NewRabbitManager("Solver 4", jjj)
+	log.Println(s4.Key)
+
+	s5 := rabbit.NewRabbitManager("Solver 5", jjj)
+	log.Println(s5.Key)
 
 	// Создаем канал с сигналом об остановки сервиса
 	osSignalsChan := make(chan os.Signal, 1)

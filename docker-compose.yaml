@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:3.10.7-management
     container_name: rabbitmq
     ports:
       - "5672:5672"  # порт для AMQP
@@ -9,6 +9,8 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+    networks:                                                                                                                                                                                                                                   
+      - leonid_network
       
   postgres:
     image: postgres:16.1
@@ -32,7 +34,7 @@ services:
     container_name: orchestrator_server
     depends_on:
       - postgres
-      - kafka
+      - rabbitmq
     ports:
       - "8082:8082"
     networks:
@@ -45,7 +47,7 @@ services:
     container_name: solver_server
     depends_on:
       - postgres
-      - kafka
+      - rabbitmq
       - orchestrator-server
     networks:
       - leonid_network

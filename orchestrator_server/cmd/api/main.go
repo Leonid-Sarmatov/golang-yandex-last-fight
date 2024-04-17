@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"os/signal"
+	//"os/signal"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -46,7 +46,7 @@ func main() {
 
 	// Создаем структуру для работы с брокером сообщений
 	rabbitManager := rabbit.NewRabbitManager(logger, cfg, postgres)
-	defer rabbitManager.Close()
+	//defer rabbitManager.Close()
 	//fuck(logger)
 
 	// Инициализируем роутер
@@ -101,11 +101,11 @@ func main() {
 	}
 
 	// Создаем канал с сигналом об остановки сервиса
-	osSignalsChan := make(chan os.Signal, 1)
-	signal.Notify(osSignalsChan, os.Interrupt)
+	//osSignalsChan := make(chan os.Signal, 1)
+	//signal.Notify(osSignalsChan, os.Interrupt)
 
 	// Ждем сигнал об остановке (Ctrl + C в терминале)
-	<-osSignalsChan
+	//<-osSignalsChan
 }
 
 /*
