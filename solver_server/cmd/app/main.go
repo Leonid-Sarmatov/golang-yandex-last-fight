@@ -6,6 +6,7 @@ import (
 	"os/signal"
 
 	rabbit "github.com/Leonid-Sarmatov/golang-yandex-last-fight/solver_server/internal/rabbit"
+	grpc "github.com/Leonid-Sarmatov/golang-yandex-last-fight/solver_server/internal/grpc"
 )
 
 type Kostul struct {}
@@ -19,7 +20,7 @@ func NewCostul() *Kostul {
 }
 
 func main() {
-	jjj := NewCostul()
+	jjj := grpc.NewGRPCManager()
 	s1 := rabbit.NewRabbitManager("Solver 1", jjj)
 	log.Println(s1.Key)
 	

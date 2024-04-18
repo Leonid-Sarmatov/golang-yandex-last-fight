@@ -37,6 +37,7 @@ services:
       - rabbitmq
     ports:
       - "8082:8082"
+      - "5000:5000"
     networks:
       - leonid_network
 
@@ -46,9 +47,9 @@ services:
       dockerfile: Solver
     container_name: solver_server
     depends_on:
+      - orchestrator-server
       - postgres
       - rabbitmq
-      - orchestrator-server
     networks:
       - leonid_network
 

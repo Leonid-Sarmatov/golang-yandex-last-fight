@@ -13,6 +13,7 @@ type Config struct {
 	PostgresConfig   `yaml:"postgres"`
 	RabbitConfig      `yaml:"rabbitmq"`
 	HTTPServerConfig `yaml:"http_server"`
+	GRPSServerConfig `yaml:"grpc_server"`
 }
 
 type PostgresConfig struct {
@@ -35,6 +36,11 @@ type HTTPServerConfig struct {
 	Address           string        `yaml:"address" env-default:"localhost:8080"`
 	RequestTimeout    time.Duration `yaml:"request_timeout" env-default:"4s"`
 	ConnectionTimeout time.Duration `yaml:"connection_timeout" env-default:"60s"`
+}
+
+type GRPSServerConfig struct {
+	Host string `yaml:"host" env-default:"orchestrator_server"`
+	Port string `yaml:"port" env-default:"5000"`
 }
 
 func MustLoad() *Config {

@@ -40,10 +40,11 @@ type RabbitManager struct {
 	Key            string
 	KeyCounter     int
 	KeyMax         int
+	Expression string
 }
 
 type Heartbeat interface {
-	Ping(string) error
+	Ping(string, string) error
 }
 
 func NewRabbitManager(key string, heartbeat Heartbeat) *RabbitManager {
@@ -58,7 +59,7 @@ func NewRabbitManager(key string, heartbeat Heartbeat) *RabbitManager {
 		for {
 			select {
 			case <-ticker.C:
-				err := heartbeat.Ping("")
+				err := heartbeat.Ping(key, rb.Expression)
 				if err != nil {
 					log.Printf("Ping was failed: %v", err.Error())
 				}
@@ -147,7 +148,6 @@ func NewRabbitManager(key string, heartbeat Heartbeat) *RabbitManager {
 	go func() {
 		for d := range msgs {
 			log.Printf("Body: %s, Key: %v", d.Body, key)
-			fmt.Println("JJJJJJJJJJJJJJJJJJJJJJJJJ")
 			//d.Ack(false)
 			// Здесь должна быть логика обработки сообщения
 			var task Task
@@ -155,6 +155,8 @@ func NewRabbitManager(key string, heartbeat Heartbeat) *RabbitManager {
 			if err != nil {
 				log.Printf("Encoding to JSON was failed %v", err)
 			}
+
+			rb.Expression = task.Expression
 
 			// Подтверждаем получение сообщения
 			d.Ack(false)
@@ -194,6 +196,8 @@ func NewRabbitManager(key string, heartbeat Heartbeat) *RabbitManager {
 			if err != nil {
 				log.Printf("Send to orchestrator was failed %v", err)
 			}
+
+			rb.Expression = ""
 		}
 	}()
 

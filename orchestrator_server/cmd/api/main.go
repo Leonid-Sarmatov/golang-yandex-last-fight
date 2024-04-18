@@ -22,6 +22,7 @@ import (
 	cors_headers "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/middlewares/cors_headers"
 	validate_token "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/middlewares/validate_token"
 	postgres "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/postgres"
+	grpc "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/grpc"
 )
 
 func main() {
@@ -48,6 +49,9 @@ func main() {
 	rabbitManager := rabbit.NewRabbitManager(logger, cfg, postgres)
 	//defer rabbitManager.Close()
 	//fuck(logger)
+
+	// Создаем GRPC сервер
+	grpcManager := grpc.NewGRPCManager(logger, cfg)
 
 	// Инициализируем роутер
 	router := chi.NewRouter()
@@ -83,7 +87,7 @@ func main() {
 		r.Post("/sendTimeOfOperations", send_time_of_operation.NewSendTimeOfOperationsHandler(logger, postgres))
 
 		// Эндпоинт возвращающий список с вычислителями и информацией о них
-		r.Get("/getListOfSolvers", get_list_of_solvers.NewGetListOfSolversHandler(logger))
+		r.Get("/getListOfSolvers", get_list_of_solvers.NewGetListOfSolversHandler(logger, grpcManager))
 	})
 
 	// Создаем сервер

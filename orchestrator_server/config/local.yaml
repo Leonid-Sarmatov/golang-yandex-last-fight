@@ -15,3 +15,6 @@ http_server:
   address: ":8082" # Адрес сервера
   request_timeout: 4s # Таймаут запроса
   connection_timeout: 60s # Таймаут соединения
+grpc_server:
+  host: "orchestrator_server"
+  port: "5000"

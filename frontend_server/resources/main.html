@@ -271,7 +271,7 @@
   function populateSolversList(solvers) {
     const solversList = document.getElementById('solversList');
     solversList.innerHTML = ''; // Clear existing list items
-    solvers.forEach(solver => {
+    solvers["list_of_solvers"].forEach(solver => {
       const listItem = document.createElement('li');
       console.log(solver);
       listItem.innerHTML = `
