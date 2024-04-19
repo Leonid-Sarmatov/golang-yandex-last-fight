@@ -77,7 +77,7 @@ func NewRegistrationHandler(logger *slog.Logger, accountCreater AccountCreater) 
 		// Отправляем ответ клиенту
 		render.JSON(w, r, Response{
 			Status: "OK",
-			Message: "reg",
+			Message: "Successful registration",
 		})
 		//logger.Info("OK")
 	}

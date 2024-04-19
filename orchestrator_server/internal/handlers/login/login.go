@@ -85,7 +85,7 @@ func NewLoginHandler(logger *slog.Logger, j JWTCreater, checkAccount CheckAccoun
 		render.JSON(w, r, Response{
 			Status:   "OK",
 			JWTToken: token,
-			Message:  "login",
+			Message:  "Successfull authentication",
 		})
 	}
 }

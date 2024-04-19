@@ -124,7 +124,7 @@
           if (xhr.status === 200) {
             const response = JSON.parse(xhr.responseText);
             console.log(response)
-            if (response["token"] != "" && response["message"] == "login") {
+            if (response["token"] != "" && response["message"] == "Successfull authentication") {
               sessionStorage.setItem('jwtToken', response["token"]);
               console.log(sessionStorage.getItem('jwtToken'));
               window.location.href = 'http://localhost:8081/account';
