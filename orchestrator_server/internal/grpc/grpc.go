@@ -14,8 +14,8 @@ import (
 
 type SolverInfo struct {
 	Key        string    `json:"solverName"`
-	LastPing   time.Time `json:"solvingExpression"`
-	Expression string    `json:"lastPing"`
+	LastPing   time.Time `json:"lastPing"`
+	Expression string    `json:"solvingExpression"`
 	Info       string    `json:"infoString"`
 }
 

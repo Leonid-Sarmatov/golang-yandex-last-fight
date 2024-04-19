@@ -170,8 +170,8 @@
         console.log(response);     
         // Печатаем в окно
         responseWindow.innerHTML = 'Response from server:<br>'
-        responseWindow.innerHTML += response["response"] + '<br>'
-        responseWindow.innerHTML += response["timeToSend"]
+        responseWindow.innerHTML += response["error"] + '<br>'
+        responseWindow.innerHTML += response["message"]
       } else {
         displayError("Status: " + xhr.status + " " + xhr.statusText);
       }
