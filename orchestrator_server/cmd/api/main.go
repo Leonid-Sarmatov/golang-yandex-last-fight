@@ -1,7 +1,7 @@
 package main
 
 import (
-	"io"
+	//"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -36,6 +36,9 @@ func main() {
 	logger := setupLogger(cfg.EnvMode)
 	logger.Debug("Successful read configurations.", slog.Any("cfg", cfg))
 
+	// Создаем GRPC сервер
+	grpcManager := grpc.NewGRPCManager(logger, cfg)
+
 	// Создаем структуру для работы с JWT токенами
 	jwtManager := jwt_manager.NewJWTManager()
 
@@ -46,12 +49,7 @@ func main() {
 	}
 
 	// Создаем структуру для работы с брокером сообщений
-	rabbitManager := rabbit.NewRabbitManager(logger, cfg, postgres)
-	//defer rabbitManager.Close()
-	//fuck(logger)
-
-	// Создаем GRPC сервер
-	grpcManager := grpc.NewGRPCManager(logger, cfg)
+	rabbitManager := rabbit.NewRabbitManager(logger, cfg, postgres, grpcManager)
 
 	// Инициализируем роутер
 	router := chi.NewRouter()
@@ -78,7 +76,7 @@ func main() {
 		r.Use(validate_token.ValidateJWTToken(logger, jwtManager))
 
 		// Эндпоинт принимающий выражение
-		r.Post("/sendTask", send_task.NewSendTaskHandler(logger, rabbitManager, postgres, postgres))
+		r.Post("/sendTask", send_task.NewSendTaskHandler(logger, rabbitManager, postgres, postgres, grpcManager))
 
 		// Эндпоинт возвращающий список со всеми задачами
 		r.Get("/getListOfTask", get_list_of_task.NewGetListOfTaskHandler(logger, postgres))
@@ -134,24 +132,4 @@ func setupLogger(envMode string) *slog.Logger {
 	}
 
 	return logger
-}
-
-func fuck(logger *slog.Logger) {
-	resp, err := http.Get("http://frontend_server:8081/registration")
-	if err != nil || resp.StatusCode != http.StatusOK {
-		// Если не удалочь отправить успешный запрос или отказано
-		// в получении задачи то ждем две секунды, 
-		// и пытаемся отправить запрос повторно
-		logger.Info("[ERROR]: Can not connect to orkestrator", err.Error())
-
-	} else {
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			logger.Info("[error]:", err.Error())
-			return
-		}
-
-		logger.Info("html:", string(body))
-	}
 }

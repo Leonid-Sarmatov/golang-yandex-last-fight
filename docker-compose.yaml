@@ -16,6 +16,8 @@ services:
     image: postgres:16.1
     container_name: last_fight_postgres
     #restart: always
+    depends_on:
+      - rabbitmq
     environment:
       POSTGRES_DB: "main_database"
       POSTGRES_USER: "leonid"
@@ -34,7 +36,6 @@ services:
     container_name: orchestrator_server
     depends_on:
       - postgres
-      - rabbitmq
     ports:
       - "8082:8082"
       - "5000:5000"
@@ -48,8 +49,6 @@ services:
     container_name: solver_server
     depends_on:
       - orchestrator-server
-      - postgres
-      - rabbitmq
     networks:
       - leonid_network
 
@@ -60,7 +59,6 @@ services:
     container_name: frontend_server
     depends_on:
       - orchestrator-server
-      - postgres
     ports:
       - "8081:8081"
     networks:

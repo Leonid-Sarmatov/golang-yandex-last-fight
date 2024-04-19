@@ -8,14 +8,13 @@ import (
 
 	//"log"
 	"log/slog"
-	"strconv"
-
-	//"time"
+	//"strconv"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
 	config "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/config"
 	postgres "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/postgres"
+	grpc "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/grpc"
 )
 
 type RabbitManager struct {
@@ -47,7 +46,11 @@ type SaverTaskResult interface {
 	SaveTaskResult(userName, expression, result string) error
 }
 
-func NewRabbitManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResult) *RabbitManager {
+type GetterLivingSolvers interface {
+	GetLivingSolvers() ([]*grpc.SolverInfo, error)
+}
+
+func NewRabbitManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResult, gls GetterLivingSolvers) *RabbitManager {
 	var rb RabbitManager
 
 	logger.Info("---NewRabbitManager---") // +cfg.RabbitConfig.Host+":"+cfg.RabbitConfig.Port+"/"
@@ -149,46 +152,18 @@ func NewRabbitManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResul
 	}()
 
 	// Создаем массив с ключами для распределения задач по вычислителям 
-	keys := make([]string, 0) //[]string{"key1", "key2"}
-	for i := 1; i <= cfg.RabbitConfig.QuantitySolvers; i += 1 {
-		keys = append(keys, "Solver "+strconv.Itoa(i))
+	keys := make([]string, 0) 
+	// Ждем пока появится хоть один вычислитель
+	for arr, err := gls.GetLivingSolvers(); err != nil || len(arr) == 0; {
+
 	}
+	// Создаем список с ключами всех зарегистрировавшихся вычислителей
+	arr, _ := gls.GetLivingSolvers()
+	for _, solver := range arr {
+		keys = append(keys, solver.Key)
+	}
+
 	rb.KeyArray = keys
-
-	/*go func() {
-		for {
-			if rb.KeyCounter >= len(rb.KeyArray) {
-				rb.KeyCounter = 0
-			}
-			logger.Info("1111!")
-			body, err := json.Marshal(Task{Expression: "2+2", UserName: "user"})
-			if err != nil {
-				continue
-			}
-
-			logger.Info("2222!")
-			message := amqp.Publishing{
-				ContentType: "text/plain", Body: body,
-				Headers: amqp.Table{
-					"worker": keys[rb.KeyCounter], // Маркируем сообщение
-				},
-			}
-
-			logger.Info("3333!")
-			err = rb.Channel.PublishWithContext(
-				context.Background(), cfg.RabbitConfig.TaskExchange,
-				keys[rb.KeyCounter], false, false, message,
-			)
-
-			if err != nil {
-				logger.Info("SSSSSSEEEEEENNNDDDD!", err)
-			}
-			rb.KeyCounter += 1
-
-			time.Sleep(1 * time.Second)
-		}
-	}()*/
-
 	rb.Connection = connection
 	rb.Channel = channel
 	rb.TaskExchange = cfg.RabbitConfig.TaskExchange
@@ -201,8 +176,13 @@ func (rb *RabbitManager) Close() {
 	rb.Channel.Close()
 }
 
-func (rb *RabbitManager) SendTaskToSolver(userName, expression string, gto GetterTimeOfOperation) error {
-	if rb.KeyCounter >= len(rb.KeyArray) {
+func (rb *RabbitManager) SendTaskToSolver(userName, expression string, gto GetterTimeOfOperation, gls GetterLivingSolvers) error {
+	solversArray, err := gls.GetLivingSolvers()
+	if err != nil {
+		return err 
+	}
+
+	if rb.KeyCounter >= len(solversArray) {
 		rb.KeyCounter = 0
 	}
 
@@ -219,13 +199,13 @@ func (rb *RabbitManager) SendTaskToSolver(userName, expression string, gto Gette
 	message := amqp.Publishing{
 		ContentType: "text/plain", Body: body,
 		Headers: amqp.Table{
-			"worker": rb.KeyArray[rb.KeyCounter], // Маркируем сообщение
+			"worker": solversArray[rb.KeyCounter].Key, // Маркируем сообщение
 		},
 	}
 
 	err = rb.Channel.PublishWithContext(
 		context.Background(), rb.TaskExchange,
-		rb.KeyArray[rb.KeyCounter], false, false, message,
+		solversArray[rb.KeyCounter].Key, false, false, message,
 	)
 
 	rb.KeyCounter += 1

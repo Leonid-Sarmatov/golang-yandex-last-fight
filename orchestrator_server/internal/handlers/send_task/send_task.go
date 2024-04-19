@@ -29,7 +29,7 @@ type Response struct {
 }
 
 type SenderTask interface {
-	SendTaskToSolver(userName, expression string, gto rabbit.GetterTimeOfOperation) error
+	SendTaskToSolver(userName, expression string, gto rabbit.GetterTimeOfOperation, gls rabbit.GetterLivingSolvers) error
 }
 
 type SaverTask interface {
@@ -44,7 +44,8 @@ NewSendTaskHandler принимает задачу и отправляет ее 
 func NewSendTaskHandler(logger *slog.Logger, 
 						senderTask SenderTask, 
 						saverTask SaverTask,
-						gto rabbit.GetterTimeOfOperation) http.HandlerFunc {
+						gto rabbit.GetterTimeOfOperation,
+						gls rabbit.GetterLivingSolvers) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Переменная для запроса
 		var request Request
@@ -80,7 +81,7 @@ func NewSendTaskHandler(logger *slog.Logger,
 		}
 
 		// Отправляем задачу в вычислитель
-		err = senderTask.SendTaskToSolver(userName, request.Expression, gto)
+		err = senderTask.SendTaskToSolver(userName, request.Expression, gto, gls)
 		if err != nil {
 			// Пишем в лог ошибку декодирования
 			logger.Error("Send to solver was failed", err.Error())

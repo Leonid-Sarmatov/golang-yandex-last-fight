@@ -11,7 +11,7 @@ import (
 
 
 type GetterListOfSolvers interface {
-	GetListOfSolvers() ([]grpc.SolverInfo, error)
+	GetListOfSolvers() ([]*grpc.SolverInfo, error)
 }
 
 
@@ -37,10 +37,15 @@ func NewGetListOfSolversHandler(logger *slog.Logger, gls GetterListOfSolvers) ht
 
 		//logger.Info("***Solvers***", listOfSolvers)
 
+		solvers := make([]grpc.SolverInfo, len(listOfSolvers))
+		for i, val := range listOfSolvers {
+			solvers[i] = *val
+		}
+
 		// Выдаем список с задачами клиенту
 		render.JSON(w, r, Response{
 			Status:   "OK",
-			ListOfSolvers:  listOfSolvers,
+			ListOfSolvers:  solvers,
 		})
 	}
 }

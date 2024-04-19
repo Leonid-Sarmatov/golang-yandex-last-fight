@@ -117,10 +117,27 @@ func NewGRPCManager(logger *slog.Logger, cfg *config.Config) *GRPCManager {
 /*
 GetListOfSolvers возвращает список с вычислителями и их параметрами
 */
-func (grpc *GRPCManager) GetListOfSolvers() ([]SolverInfo, error) {
-	arr := make([]SolverInfo, 0)
+func (grpc *GRPCManager) GetListOfSolvers() ([]*SolverInfo, error) {
+	arr := make([]*SolverInfo, 0)
+	grpc.Server.MX.Lock()
 	for _, val := range grpc.Server.SolverMap {
-		arr = append(arr, *val)
+		arr = append(arr, val)
 	}
+	grpc.Server.MX.Unlock()
+	return arr, nil
+}
+
+/*
+GetLivingSolvers возвращает список с живыми вычислителями
+*/
+func (grpc *GRPCManager) GetLivingSolvers() ([]*SolverInfo, error) {
+	arr := make([]*SolverInfo, 0)
+	grpc.Server.MX.Lock()
+	for _, val := range grpc.Server.SolverMap {
+		if val.Info != "Solver is died" {
+			arr = append(arr, val)
+		}
+	}
+	grpc.Server.MX.Unlock()
 	return arr, nil
 }
