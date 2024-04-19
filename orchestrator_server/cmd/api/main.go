@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"fmt"
 	//"os/signal"
 
 	"github.com/go-chi/chi/v5"
@@ -47,9 +48,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	logger.Info("++++++Postgres connect was successfull++++++")
 
 	// Создаем структуру для работы с брокером сообщений
 	rabbitManager := rabbit.NewRabbitManager(logger, cfg, postgres, grpcManager)
+	defer rabbitManager.Close()
+	logger.Info("++++++RabbitMQ connect was successfull++++++")
 
 	// Инициализируем роутер
 	router := chi.NewRouter()
@@ -96,6 +100,29 @@ func main() {
 		WriteTimeout: cfg.HTTPServerConfig.RequestTimeout,
 		IdleTimeout:  cfg.HTTPServerConfig.ConnectionTimeout,
 	}
+
+	fmt.Println("                Y.                      _             \n" +
+				"                YiL                   .```.           \n" +
+				"                Yii;                .; .;;`.          \n" +
+				"                YY;ii._           .;`.;;;; :          \n" +
+				"                iiYYYYYYiiiii;;;;i` ;;::;;;;          \n" +
+				"            _.;YYYYYYiiiiiiYYYii  .;;.   ;;;          \n" +
+				"         .YYYYYYYYYYiiYYYYYYYYYYYYii;`  ;;;;          \n" +
+				"       .YYYYYYY$$YYiiYY$$$$iiiYYYYYY;.ii;`..          \n" +
+				"      :YYY$!.  TYiiYY$$$$$YYYYYYYiiYYYYiYYii.         \n" +
+				"      Y$MM$:   :YYYYYY$! `` 4YYYYYiiiYYYYiiYY.        \n" +
+				"   `. :MM$$b.,dYY$$Yii  :'   :YYYYllYiiYYYiYY         \n" +
+				"_.._ :`4MM$!YYYYYYYYYii,.__.diii$$YYYYYYYYYYY         \n" +
+				".,._ $b`P`      4$$$$$iiiiiiii$$$$YY$$$$$$YiY;        \n" +
+				"   `,.`$:       :$$$$$$$$$YYYYY$$$$$$$$$YYiiYYL       \n" +
+				"     `;$$.    .;PPb$`.,.``T$$YY$$$$YYYYYYiiiYYU:      \n" +
+				"    ;$P$;;: ;;;;i$y$ !Y$$$b;$$$Y$YY$$YYYiiiYYiYY      \n" +
+				"    $Fi$$ .. ``:iii.`- :YYYYY$$YY$$$$$YYYiiYiYYY      \n" +
+				"    :Y$$rb ````  `_..;;i;YYY$YY$$$$$$$YYYYYYYiYY:     \n" +
+				"     :$$$$$i;;iiiiidYYYYYYYYYY$$$$$$YYYYYYYiiYYYY.    \n" +
+				"      `$$$$$$$YYYYYYYYYYYYY$$$$$$YYYYYYYYiiiYYYYYY    \n" +
+				"      .i!$$$$$$YYYYYYYYY$$$$$$YYY$$YYiiiiiiYYYYYYY    \n" +
+				"     :YYiii$$$$$$$YYYYYYY$$$$YY$$$$YYiiiiiYYYYYYi'    ")
 
 	// Запускаем сервер
 	if err := server.ListenAndServe(); err != nil {

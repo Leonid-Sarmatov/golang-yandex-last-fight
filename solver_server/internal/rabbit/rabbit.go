@@ -99,20 +99,6 @@ func NewRabbitManager(key string, heartbeat Heartbeat) *RabbitManager {
 		log.Fatalf("Ошибка при объявлении exchange: %s", err)
 	}
 
-	// Объявляем exchange для отправки ответов
-	/*err = resultChannel.ExchangeDeclare(
-		rb.ResultExchange, // Имя exchange
-		"direct",        // Тип exchange (может быть direct, fanout, topic, headers)
-		false,           // durable
-		false,           // auto-deleted
-		false,           // internal
-		false,           // no-wait
-		nil,             // аргументы
-	)
-	if err != nil {
-		log.Fatalf("Ошибка при объявлении exchange: %s", err)
-	}*/
-
 	// Объявляем очередь для приема задач rb.ResultExchange
 	q, err := channel.QueueDeclare("queue", false, false, false, false, nil)
 	if err != nil {
@@ -144,7 +130,6 @@ func NewRabbitManager(key string, heartbeat Heartbeat) *RabbitManager {
 		log.Fatalf("%s", err)
 	}
 
-	log.Printf(q.Name)
 	go func() {
 		for d := range msgs {
 			log.Printf("Body: %s, Key: %v", d.Body, key)

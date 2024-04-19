@@ -3,6 +3,7 @@ package rabbit
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	//"time"
 
@@ -13,8 +14,8 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 
 	config "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/config"
-	postgres "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/postgres"
 	grpc "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/grpc"
+	postgres "github.com/Leonid-Sarmatov/golang-yandex-last-fight/orchestrator_server/internal/postgres"
 )
 
 type RabbitManager struct {
@@ -53,26 +54,24 @@ type GetterLivingSolvers interface {
 func NewRabbitManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResult, gls GetterLivingSolvers) *RabbitManager {
 	var rb RabbitManager
 
-	logger.Info("---NewRabbitManager---") // +cfg.RabbitConfig.Host+":"+cfg.RabbitConfig.Port+"/"
-
 	// Устанавливаем соединение с сервером RabbitMQ "amqp://guest:guest@rabbitmq:5672/"
 	connection, err := amqp.Dial("amqp://guest:guest@rabbitmq:5672/")
-	if err != nil {
-		logger.Info("", err)
-		return &rb
+	for err != nil {
+		connection, err = amqp.Dial("amqp://guest:guest@rabbitmq:5672/")
+		time.Sleep(2 * time.Second)
 	}
 
 	// Создаем канал для отправки задач
 	channel, err := connection.Channel()
 	if err != nil {
-		logger.Info("", err)
+		logger.Info("Rabbit error", err)
 		return &rb
 	}
 
 	// Создаем канал для приема ответов
 	resultChannel, err := connection.Channel()
 	if err != nil {
-		logger.Info("", err)
+		logger.Info("Rabbit error", err)
 		return &rb
 	}
 
@@ -87,7 +86,7 @@ func NewRabbitManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResul
 		nil,                           // аргументы
 	)
 	if err != nil {
-		logger.Info("", err)
+		logger.Info("Rabbit error", err)
 		return &rb
 	}
 
@@ -116,7 +115,7 @@ func NewRabbitManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResul
 		nil,        // аргументы
 	)
 	if err != nil {
-		
+		logger.Info("Rabbit error", err)
 	}
 
 	// Получаем сообщения из очереди
@@ -130,7 +129,7 @@ func NewRabbitManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResul
 		nil,    // args
 	)
 	if err != nil {
-		
+		logger.Info("", err)
 	}
 
 	// Создаем поток для записи ответов в базу данных
@@ -154,8 +153,15 @@ func NewRabbitManager(logger *slog.Logger, cfg *config.Config, sr SaverTaskResul
 	// Создаем массив с ключами для распределения задач по вычислителям 
 	keys := make([]string, 0) 
 	// Ждем пока появится хоть один вычислитель
-	for arr, err := gls.GetLivingSolvers(); err != nil || len(arr) == 0; {
+	b := true
+	for b {
+		arr, err := gls.GetLivingSolvers()
+		if err == nil && len(arr) != 0 {
+			b = false
+		}
 
+		time.Sleep(1 * time.Second)
+		logger.Info("Empty solver list!")
 	}
 	// Создаем список с ключами всех зарегистрировавшихся вычислителей
 	arr, _ := gls.GetLivingSolvers()
@@ -178,7 +184,7 @@ func (rb *RabbitManager) Close() {
 
 func (rb *RabbitManager) SendTaskToSolver(userName, expression string, gto GetterTimeOfOperation, gls GetterLivingSolvers) error {
 	solversArray, err := gls.GetLivingSolvers()
-	if err != nil {
+	if err != nil || len(solversArray) == 0 {
 		return err 
 	}
 
